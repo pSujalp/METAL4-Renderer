@@ -355,7 +355,6 @@ void MTLEngine::sendRenderCommand()
         simd::float4{MVP_GLM[3][0], MVP_GLM[3][1], MVP_GLM[3][2], MVP_GLM[3][3]},
     });
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
-
     metal4CommandBuffer->beginCommandBuffer(cmd_alloc);
 
     MTL4::RenderCommandEncoder *encoder = metal4CommandBuffer->renderCommandEncoder(renderPassDescriptor);
