@@ -1,9 +1,5 @@
 #pragma once
 
-// objc_autoreleasePoolPush/Pop are plain C functions from the ObjC runtime,
-// so they can be called from a .cpp file without any Objective-C syntax.
-// Requires linking libobjc (already linked on macOS whenever you link
-// Cocoa/Metal frameworks).
 extern "C" {
     void* objc_autoreleasePoolPush(void);
     void  objc_autoreleasePoolPop(void* ctx);
