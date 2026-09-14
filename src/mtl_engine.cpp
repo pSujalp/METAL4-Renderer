@@ -1,4 +1,7 @@
 #include "mtl_engine.hpp"
+#include "mtl_engine.hpp"
+#include "metal_view_bridge.h"
+#include "autorelease_pool.h"
 
 void MTLEngine::init() {
     initDevice();
@@ -11,7 +14,8 @@ void MTLEngine::init() {
 
 void MTLEngine::run() {
     while (!glfwWindowShouldClose(glfwWindow)) {
-        @autoreleasepool {
+        {
+            AutoreleasePoolGuard pool;
             draw();
         }
         glfwPollEvents();
@@ -58,14 +62,10 @@ void MTLEngine::initWindow() {
     int width, height;
     glfwGetFramebufferSize(glfwWindow, &width, &height);
 
-    metalWindow = glfwGetCocoaWindow(glfwWindow);
-    metalLayer = [CAMetalLayer layer];
-    metalLayer.device = (__bridge id<MTLDevice>)metalDevice;
-    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metalLayer.drawableSize = CGSizeMake(width, height);
-    metalWindow.contentView.layer = metalLayer;
-    metalWindow.contentView.wantsLayer = YES;
+    metalLayerHandle = MetalViewBridge::CreateAndAttachLayer(
+        glfwWindow, metalDevice, MTL::PixelFormatBGRA8Unorm, width, height);
 }
+
 
 void MTLEngine::createTriangle() {
     VertexData squareVertices[] {
@@ -131,7 +131,7 @@ void MTLEngine::createCommandQueue() {
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
     
-    CA::MetalLayer* metalLayerCpp = (__bridge CA::MetalLayer*)metalLayer;
+    CA::MetalLayer* metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
     metal4CommandQueue->addResidencySet(metalLayerCpp->residencySet());
 }
 
@@ -144,7 +144,7 @@ void MTLEngine::createRenderPipeline() {
         std::exit(-1);
     }
 
-    MTL::PixelFormat pixelFormat = (MTL::PixelFormat)metalLayer.pixelFormat;
+    MTL::PixelFormat pixelFormat = MetalViewBridge::GetPixelFormat(metalLayerHandle);
 
     auto* compilerDesc = MTL4::CompilerDescriptor::alloc()->init();
     metal4Compiler = metalDevice->newCompiler(compilerDesc, nullptr);
@@ -198,7 +198,7 @@ void MTLEngine::sendRenderCommand() {
     MTL4::CommandAllocator* cmd_alloc = cmd_allocators[frame_idx];
     cmd_alloc->reset();
 
-    CA::MetalDrawable* surface = (__bridge CA::MetalDrawable*)[metalLayer nextDrawable];
+    CA::MetalDrawable* surface = MetalViewBridge::NextDrawable(metalLayerHandle);
     if (!surface) {
         std::cerr << "nextDrawable() returned null -- skipping this frame.\n";
         return;

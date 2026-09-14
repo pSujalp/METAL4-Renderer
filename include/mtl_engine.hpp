@@ -48,8 +48,7 @@ private:
 
     MTL::Device*        metalDevice  = nullptr;
     GLFWwindow*         glfwWindow   = nullptr;
-    NSWindow*           metalWindow  = nullptr;
-    CAMetalLayer*       metalLayer   = nullptr;
+    void*               metalLayerHandle = nullptr;
 
     MTL::Buffer*  triangleVertexBuffer = nullptr;
     MTL::Library* shaderLibrary        = nullptr;
