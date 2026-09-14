@@ -16,9 +16,9 @@ struct VertexData {
 
 enum class BUFFER_INDEX : int {
 
-    VERTEX_DATA = 1,
+    VERTEX_DATA = 0,
     COLTEXTURE_ID = 0,
-    Transformation_DATA = 3
+    Transformation_DATA = 2
 
 };
 
