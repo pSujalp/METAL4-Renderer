@@ -159,11 +159,18 @@ void MTLEngine::createRenderPipeline() {
     fragmentFunctionDescriptor->setLibrary(shaderLibrary);
     fragmentFunctionDescriptor->setName(NS::String::string("fragmentShader", NS::ASCIIStringEncoding));
 
+
     auto* pipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init();
     pipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
     pipelineDescriptor->setVertexFunctionDescriptor(vertexFunctionDescriptor);
     pipelineDescriptor->setFragmentFunctionDescriptor(fragmentFunctionDescriptor);
+
+    MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
+    depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLessEqual);
+    depthStencilDescriptor->setDepthWriteEnabled(true);
+    depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
+    depthStencilDescriptor->release();
 
     NS::Error* pPipelineError = nullptr;
     metalRenderPSO = metal4Compiler->newRenderPipelineState(pipelineDescriptor, (MTL4::CompilerTaskOptions*)nullptr, &pPipelineError);
@@ -232,10 +239,9 @@ void MTLEngine::sendRenderCommand() {
 void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder* encoder) {
     encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
     encoder->setRenderPipelineState(metalRenderPSO);
+    encoder->setDepthStencilState(depthStencilState);
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-
-   
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,(NS::UInteger)0, (NS::UInteger)6);
    
 

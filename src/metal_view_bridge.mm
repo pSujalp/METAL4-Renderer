@@ -44,4 +44,4 @@ MTL::PixelFormat GetPixelFormat(void* layerHandle) {
     return (MTL::PixelFormat)layer.pixelFormat;
 }
 
-} // namespace MetalViewBridge
+}

@@ -54,6 +54,7 @@ private:
     MTL4::CommandQueue*       metal4CommandQueue  = nullptr;
     MTL4::CommandBuffer*      metal4CommandBuffer = nullptr;
     MTL::RenderPipelineState* metalRenderPSO      = nullptr;
+    MTL::DepthStencilState * depthStencilState = nullptr;
     MTL4::Compiler*           metal4Compiler      = nullptr;
 
     Array<MTL4::CommandAllocator*, kMaxFramesInFlight> cmd_allocators{};
