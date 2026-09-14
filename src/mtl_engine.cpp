@@ -81,8 +81,6 @@ void MTLEngine::createTriangle() {
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
 
-   
-
 }
 
 void MTLEngine::createCommandQueue() {
@@ -106,6 +104,7 @@ void MTLEngine::createCommandQueue() {
     argTableDesc->setMaxTextureBindCount(1);
     arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
     argTableDesc->release();
+
 
 
 
@@ -137,7 +136,6 @@ void MTLEngine::createCommandQueue() {
 
 void MTLEngine::createRenderPipeline() {
     using NS::StringEncoding::UTF8StringEncoding;
-
     shaderLibrary  = metalDevice->newDefaultLibrary();
     if(!shaderLibrary ){
         std::cerr << "Failed to load default library.";

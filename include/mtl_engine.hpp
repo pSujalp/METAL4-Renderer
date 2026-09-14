@@ -22,8 +22,6 @@
 #include "utils.hpp"
 
 #include <iostream>
-
-
 #include "stb_image.h"
 
 class MTLEngine {
