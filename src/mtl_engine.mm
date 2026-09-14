@@ -129,9 +129,8 @@ void MTLEngine::createCommandQueue() {
 
 
     residency_set->commit();
-
     metal4CommandQueue->addResidencySet(residency_set);
-
+    
     CA::MetalLayer* metalLayerCpp = (__bridge CA::MetalLayer*)metalLayer;
     metal4CommandQueue->addResidencySet(metalLayerCpp->residencySet());
 }
@@ -158,7 +157,6 @@ void MTLEngine::createRenderPipeline() {
     auto* vertexFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
     vertexFunctionDescriptor->setLibrary(shaderLibrary);
     vertexFunctionDescriptor->setName(NS::String::string("vertexShader", NS::ASCIIStringEncoding));
-
     auto* fragmentFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
     fragmentFunctionDescriptor->setLibrary(shaderLibrary);
     fragmentFunctionDescriptor->setName(NS::String::string("fragmentShader", NS::ASCIIStringEncoding));
