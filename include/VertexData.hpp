@@ -27,3 +27,8 @@ struct MVP{
 
     matrix_float4x4 MVP;
 };
+
+struct Uniforms
+{   float2 time;
+    int intAsBool;
+};
