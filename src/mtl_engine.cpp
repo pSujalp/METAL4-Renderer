@@ -102,12 +102,9 @@ void MTLEngine::initWindow()
     depthTextureDescriptor->setWidth((NS::UInteger)windowWidth);
     depthTextureDescriptor->setHeight((NS::UInteger)windowHeight);
     depthTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-
     depthTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
-
     depthTexture = metalDevice->newTexture(depthTextureDescriptor);
     depthTextureDescriptor->release();
-
     if (!depthTexture)
     {
         std::cerr << "Failed to create depth texture.\n";
@@ -383,11 +380,9 @@ void MTLEngine::sendRenderCommand()
 void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder *encoder)
 {
     encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
-
     encoder->setRenderPipelineState(metalRenderPSO);
     encoder->setDepthStencilState(depthStencilState);
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
 }
