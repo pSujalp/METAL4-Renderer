@@ -65,6 +65,10 @@ private:
 
 
     Texture* grassTexture;
+    MTL::Texture * depthTexture;
+    float windowHeight, windowWidth;
+
+    MTL::Buffer * transformationBuffer;
 
   
 };

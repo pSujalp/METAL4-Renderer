@@ -11,9 +11,10 @@ struct VertexOut {
 };
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]],
-             constant VertexData* vertexData[[buffer(BUFFER_INDEX::VERTEX_DATA)]]) {
+             constant VertexData* vertexData[[buffer(BUFFER_INDEX::VERTEX_DATA)]],
+             constant MVP * mvp [[buffer(BUFFER_INDEX::Transformation_DATA)]]) {
     VertexOut out;
-    out.position = vertexData[vertexID].position;
+    out.position = mvp->MVP  * vertexData[vertexID].position;
     out.textureCoordinate = vertexData[vertexID].textureCoordinate;
     return out;
 }

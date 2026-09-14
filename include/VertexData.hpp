@@ -17,6 +17,13 @@ struct VertexData {
 enum class BUFFER_INDEX : int {
 
     VERTEX_DATA = 1,
-    COLTEXTURE_ID = 0
+    COLTEXTURE_ID = 0,
+    Transformation_DATA = 3
 
+};
+
+
+struct MVP{
+
+    matrix_float4x4 MVP;
 };
