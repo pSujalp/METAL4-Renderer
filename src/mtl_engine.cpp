@@ -235,7 +235,8 @@ void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder* encoder) {
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
 
-    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)6);
+   
+    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,(NS::UInteger)0, (NS::UInteger)6);
    
 
 }
