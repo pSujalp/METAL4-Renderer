@@ -97,16 +97,12 @@ void MTLEngine::createCommandQueue() {
 
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
-
     
     auto* argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
     argTableDesc->setMaxBufferBindCount(2);
     argTableDesc->setMaxTextureBindCount(1);
     arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
     argTableDesc->release();
-
-
-
 
     if (!arg_table) {
         std::cerr << "newArgumentTable() returned null.\n";
