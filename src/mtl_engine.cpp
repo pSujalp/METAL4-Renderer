@@ -18,6 +18,8 @@ void MTLEngine::init()
     createTriangle();
     createCommandQueue();
     createRenderPipeline();
+
+    camera =  Camera();
 }
 
 void MTLEngine::run()
@@ -83,6 +85,9 @@ void MTLEngine::initWindow()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindow = glfwCreateWindow(800, 600, "Metal Engine", NULL, NULL);
+    
+    glfwSetMouseButtonCallback(glfwWindow, mouse_button_callback);
+    
 
     if (!glfwWindow)
     {
@@ -286,6 +291,12 @@ void MTLEngine::createRenderPipeline()
 void MTLEngine::draw()
 {
     sendRenderCommand();
+
+    float currentFrame = static_cast<float>(glfwGetTime());
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
+    ProcessKeyboardInput(deltaTime);
 }
 
 void MTLEngine::sendRenderCommand()
@@ -336,13 +347,11 @@ void MTLEngine::sendRenderCommand()
         accumulatedDegrees -= 360.0f;
     float angleInRadians = accumulatedDegrees * (M_PI / 180.0f);
     model = glm::rotate(model, angleInRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 viewMatrix = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, 5.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 viewMatrix = camera.GetViewMatrix();
 
     float aspectRatio = (float)windowWidth / (float)windowHeight;
-    float fov = glm::radians(60.0f);
+    float fov = camera.Zoom;
     float nearZ = 0.1f;
     float farZ = 100.0f;
     glm::mat4 perspectiveMatrix = glm::perspective(fov, aspectRatio, nearZ, farZ);
@@ -394,4 +403,43 @@ void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder *encoder)
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+}
+
+
+void MTLEngine::ProcessKeyboardInput(float deltaTime){
+    if (glfwGetKey(glfwWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(glfwWindow, true);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
+    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, deltaTime);
+}
+
+
+
+
+void MTLEngine::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
+            int width, height;
+            glfwGetWindowSize(window, &width, &height);
+            double xpos = width / 2.0;
+            double ypos = height / 2.0;
+            glfwSetCursorPos(window, xpos, ypos);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    } 
+    else{
+
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+    }
 }

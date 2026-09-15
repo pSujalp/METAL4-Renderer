@@ -1,7 +1,7 @@
-//
-//  mtl_engine.hpp
-//  MetalTutorial
-//
+
+
+
+
 
 #pragma once
 
@@ -24,6 +24,9 @@
 
 #include <iostream>
 #include "stb_image.h"
+#include "Camera.h"
+
+
 
 class MTLEngine {
 public:
@@ -38,6 +41,11 @@ private:
     void createTriangle();
     void createCommandQueue();
     void createRenderPipeline();
+    void ProcessKeyboardInput(float deltaTime);
+
+    static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+    // static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 
     void draw();
     void sendRenderCommand();
@@ -69,6 +77,17 @@ private:
     MTL::Texture * depthTexture;
     float windowHeight, windowWidth;
     MTL::Buffer * transformationBuffer;
+    
+
+
+
+    Camera  camera;
+    float deltaTime = 0.0f;	
+    float lastFrame = 0.0f;
+    float lastX;
+    float lastY;
+    bool firstMouse = true;
+    bool rightMouseButtonPressed = false;
 
   
 };
