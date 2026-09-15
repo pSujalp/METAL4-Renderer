@@ -151,13 +151,11 @@ void MTLEngine::createCommandQueue()
         std::cerr << "newArgumentTable() returned null.\n";
         exit(EXIT_FAILURE);
     }
-    
+
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
-
-
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
     residencyDesc->release();
@@ -184,7 +182,6 @@ void MTLEngine::createRenderPipeline()
         std::cerr << "Failed to load default library.";
         std::exit(-1);
     }
-
     MTL::PixelFormat pixelFormat = MetalViewBridge::GetPixelFormat(metalLayerHandle);
     auto *compilerDesc = MTL4::CompilerDescriptor::alloc()->init();
     metal4Compiler = metalDevice->newCompiler(compilerDesc, nullptr);
@@ -198,24 +195,24 @@ void MTLEngine::createRenderPipeline()
 
     _mainDeletionQueue.push_function([=](){metal4Compiler->release();});
 
-    auto *vertexFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
-    vertexFunctionDescriptor->setLibrary(shaderLibrary);
-    vertexFunctionDescriptor->setName(NS::String::string("vertexShader", NS::ASCIIStringEncoding));
-    auto *fragmentFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
-    fragmentFunctionDescriptor->setLibrary(shaderLibrary);
-    fragmentFunctionDescriptor->setName(NS::String::string("fragmentShader", NS::ASCIIStringEncoding));
 
+    ShaderFunctionDescriptor shaderFunctionDescriptor(shaderLibrary, "vertexShader", "fragmentShader");
     auto *pipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init();
     pipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
-    pipelineDescriptor->setVertexFunctionDescriptor(vertexFunctionDescriptor);
-    pipelineDescriptor->setFragmentFunctionDescriptor(fragmentFunctionDescriptor);
+    pipelineDescriptor->setVertexFunctionDescriptor(shaderFunctionDescriptor.vertexShaderFunctionDescriptor);
+    pipelineDescriptor->setFragmentFunctionDescriptor(shaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
+
 
     MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
     depthStencilDescriptor->setDepthWriteEnabled(true);
     depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
     depthStencilDescriptor->release();
+
+
+
+
     NS::Error *pPipelineError = nullptr;
     metalRenderPSO = metal4Compiler->newRenderPipelineState(pipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
     if (!metalRenderPSO)
@@ -231,8 +228,8 @@ void MTLEngine::createRenderPipeline()
         exit(EXIT_FAILURE);
     }
     pipelineDescriptor->release();
-    vertexFunctionDescriptor->release();
-    fragmentFunctionDescriptor->release();
+
+    
 }
 
 void MTLEngine::draw()
@@ -305,12 +302,7 @@ void MTLEngine::sendRenderCommand()
     glm::mat4 MVP_GLM = perspectiveMatrix * viewMatrix * model;
 
     MVP mvp1;
-    mvp1.MVP = matrix_float4x4({
-        simd::float4{MVP_GLM[0][0], MVP_GLM[0][1], MVP_GLM[0][2], MVP_GLM[0][3]},
-        simd::float4{MVP_GLM[1][0], MVP_GLM[1][1], MVP_GLM[1][2], MVP_GLM[1][3]},
-        simd::float4{MVP_GLM[2][0], MVP_GLM[2][1], MVP_GLM[2][2], MVP_GLM[2][3]},
-        simd::float4{MVP_GLM[3][0], MVP_GLM[3][1], MVP_GLM[3][2], MVP_GLM[3][3]},
-    });
+    mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
 
     metal4CommandBuffer[0]->beginCommandBuffer(cmd_alloc);

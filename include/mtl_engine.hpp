@@ -28,6 +28,7 @@
 #include "PrimitiveVerticesData.h"
 #include <magic_enum/magic_enum.hpp>
 #include "DeletionQueue.h"
+#include "ShaderFunctionDescriptor.h"
 
 class MTLEngine {
 public:
