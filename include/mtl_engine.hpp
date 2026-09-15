@@ -51,6 +51,11 @@ private:
 
     // static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 
+    static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
+
+
+    void resizeFrameBuffer(int width, int height);
+
     void draw();
     void sendRenderCommand();
     void encodeRenderCommand(MTL4::RenderCommandEncoder* renderCommandEncoder);
@@ -78,12 +83,18 @@ private:
 
     Texture* grassTexture;
     MTL::Texture * depthTexture;
+
     float windowHeight, windowWidth;
     MTL::Buffer * transformationBuffer;
     
     DeletionQueue _mainDeletionQueue;
 
     MultiCommandBuffer multiCommandBuffer;
+
+
+    static MTLEngine* engine;
+    
+
 
     Camera  camera;
     float deltaTime = 0.0f;	
