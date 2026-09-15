@@ -177,16 +177,14 @@ void MTLEngine::createCommandQueue()
         exit(EXIT_FAILURE);
     }
 
+
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
-    arg_table->setAddress(skybox.SkyBoxVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::SKYBOX_BUFFER_INDEX));
-    arg_table->setAddress(skybox.MVPSkyBoxBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::MVP_BUFFER_INDEX)); 
+    
 
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
 
-    r_ID = skybox.skyboxTexture->texture->gpuResourceID();
-    arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::SKYTEX_TEXTURE_INDEX);
 
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
@@ -382,16 +380,16 @@ void MTLEngine::sendRenderCommand()
 
     encoder->setRenderPipelineState(skybox.SkyboxPSO);
     encoder->setDepthStencilState(skybox.skyboxDepthStencilState);
-    encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
-    encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageVertex);
+    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,NS::UInteger(0), NS::UInteger(36));
-
-
     encoder->endEncoding();
     renderPassDescriptor->release();
 
 
     });
+
+    
     metal4CommandQueue->wait(surface);
     multiCommandBuffer.Execute(cmd_alloc, metalLayerHandle, metal4CommandQueue);
     metal4CommandQueue->signalDrawable(surface);
