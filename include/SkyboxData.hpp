@@ -17,9 +17,9 @@ enum class SKYBUFFER_INDEX{
 };
 
 enum class SKYTEXTURE_INDEX{
-    SKYTEX_TEXTURE_INDEX = 2
+    SKYTEX_TEXTURE_INDEX = 0
 };
 
 enum class SKYSAMPLER_INDEX{
-     SAMPLER_INDEX = 3
+     SAMPLER_INDEX = 0
 };
