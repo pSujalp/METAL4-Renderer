@@ -84,20 +84,34 @@ void MTLEngine::initWindow()
         glfwWindow, metalDevice, MTL::PixelFormatBGRA8Unorm, width, height);
 
     MTL::TextureDescriptor *depthTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    depthTextureDescriptor->setTextureType(MTL::TextureType2D);
+    depthTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
     depthTextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
     depthTextureDescriptor->setWidth((NS::UInteger)windowWidth);
     depthTextureDescriptor->setHeight((NS::UInteger)windowHeight);
     depthTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
     depthTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
+    depthTextureDescriptor->setSampleCount(4);
     depthTexture = metalDevice->newTexture(depthTextureDescriptor);
     depthTextureDescriptor->release();
-    if (!depthTexture)
+
+    MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    textureDescriptor->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    textureDescriptor->setWidth((NS::UInteger)windowWidth);
+    textureDescriptor->setHeight((NS::UInteger)windowHeight);
+    textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    textureDescriptor->setStorageMode(MTL::StorageModePrivate);
+    textureDescriptor->setSampleCount(4);
+    ColorTexture = metalDevice->newTexture(textureDescriptor);
+    textureDescriptor->release();
+
+    if (!depthTexture || !ColorTexture)
     {
-        std::cerr << "Failed to create depth texture.\n";
+        std::cerr << "Failed to create depth or color texture.\n";
         exit(EXIT_FAILURE);
     }
     depthTexture->setLabel(NS::String::string("Depth Texture", NS::ASCIIStringEncoding));
+    ColorTexture->setLabel(NS::String::string("Color Texture", NS::ASCIIStringEncoding));
 }
 
 void MTLEngine::createTriangle()
@@ -178,6 +192,8 @@ void MTLEngine::createRenderPipeline()
         std::exit(-1);
     }
     MTL::PixelFormat pixelFormat = MetalViewBridge::GetPixelFormat(metalLayerHandle);
+
+    defaultPixelFormat = MTL::PixelFormatBGRA8Unorm;
     auto *compilerDesc = MTL4::CompilerDescriptor::alloc()->init();
     metal4Compiler = metalDevice->newCompiler(compilerDesc, nullptr);
     compilerDesc->release();
@@ -290,17 +306,22 @@ void MTLEngine::sendRenderCommand()
 
     MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
     MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
+
+
+
     MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
 
     depthAttachment->setTexture(depthTexture);
+
     depthAttachment->setLoadAction(MTL::LoadActionClear);
     depthAttachment->setStoreAction(MTL::StoreActionDontCare);
     depthAttachment->setClearDepth(1.0);
 
-    cd->setTexture(surface->texture());
+    cd->setTexture(ColorTexture);
+    cd->setResolveTexture(surface->texture());
     cd->setLoadAction(MTL::LoadActionClear);
     cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
-    cd->setStoreAction(MTL::StoreActionStore);
+    cd->setStoreAction(MTL::StoreActionMultisampleResolve);
 
     MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
     encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
@@ -380,26 +401,43 @@ void MTLEngine::frameBufferSizeCallback(GLFWwindow *window, int width, int heigh
 
 
 void MTLEngine::resizeFrameBuffer(int width, int height){
-
-
-
+    windowWidth = static_cast<float>(width);
+    windowHeight = static_cast<float>(height);
 
     if (depthTexture) {
         depthTexture->release();
         depthTexture = nullptr;
     }
 
-    MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    TextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
-    TextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
-    TextureDescriptor->setWidth((NS::UInteger)windowWidth);
-    TextureDescriptor->setHeight((NS::UInteger)windowHeight);
-    TextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-    TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
-    TextureDescriptor->setSampleCount(4);
+    if (ColorTexture) {
+        ColorTexture->release();
+        ColorTexture = nullptr;
+    }
 
-    depthTexture = metalDevice->newTexture(TextureDescriptor);
-    TextureDescriptor->release();
+    MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    textureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
+    textureDescriptor->setWidth((NS::UInteger)windowWidth);
+    textureDescriptor->setHeight((NS::UInteger)windowHeight);
+    textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    textureDescriptor->setStorageMode(MTL::StorageModePrivate);
+    textureDescriptor->setSampleCount(4);
+    depthTexture = metalDevice->newTexture(textureDescriptor);
+    textureDescriptor->release();
 
+    textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    textureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    textureDescriptor->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    textureDescriptor->setWidth((NS::UInteger)windowWidth);
+    textureDescriptor->setHeight((NS::UInteger)windowHeight);
+    textureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    textureDescriptor->setStorageMode(MTL::StorageModePrivate);
+    textureDescriptor->setSampleCount(4);
+    ColorTexture = metalDevice->newTexture(textureDescriptor);
+    textureDescriptor->release();
 
+    if (!depthTexture || !ColorTexture) {
+        std::cerr << "Failed to recreate resized depth/color textures.\n";
+        exit(EXIT_FAILURE);
+    }
 }

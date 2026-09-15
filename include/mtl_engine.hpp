@@ -81,8 +81,13 @@ private:
     size_t frame_num = 0;
 
 
+    MTL::PixelFormat  defaultPixelFormat;
+
+
     Texture* grassTexture;
     MTL::Texture * depthTexture;
+
+    MTL::Texture * ColorTexture;
 
     float windowHeight, windowWidth;
     MTL::Buffer * transformationBuffer;
