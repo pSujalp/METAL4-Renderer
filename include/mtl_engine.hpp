@@ -29,6 +29,8 @@
 #include <magic_enum/magic_enum.hpp>
 #include "DeletionQueue.h"
 #include "ShaderFunctionDescriptor.h"
+#include "MultiCommandBuffer.h"
+
 
 class MTLEngine {
 public:
@@ -81,6 +83,7 @@ private:
     
     DeletionQueue _mainDeletionQueue;
 
+    MultiCommandBuffer multiCommandBuffer;
 
     Camera  camera;
     float deltaTime = 0.0f;	
