@@ -25,7 +25,7 @@
 #include <iostream>
 #include "stb_image.h"
 #include "Camera.h"
-
+#include "PrimitiveVerticesData.h"
 
 
 class MTLEngine {

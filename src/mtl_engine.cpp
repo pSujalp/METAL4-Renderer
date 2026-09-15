@@ -168,7 +168,9 @@ void MTLEngine::createTriangle()
         {{0.5, -0.5, 0.5, 1.0}, {0.0, 0.0}},
     };
 
-    triangleVertexBuffer = metalDevice->newBuffer(&squareVertices, sizeof(squareVertices), MTL::ResourceStorageModeShared);
+    PrimitiveVerticesData primitiveVerticesData = PrimitiveVerticesData();
+
+    triangleVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.CubeVertices.data() , primitiveVerticesData.CubeVertices.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
     transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
