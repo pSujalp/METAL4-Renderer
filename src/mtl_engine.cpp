@@ -298,11 +298,11 @@ void MTLEngine::sendRenderCommand()
     depthAttachment->setLoadAction(MTL::LoadActionClear);
     depthAttachment->setStoreAction(MTL::StoreActionDontCare);
     depthAttachment->setClearDepth(1.0);
-
     cd->setTexture(surface->texture());
     cd->setLoadAction(MTL::LoadActionClear);
     cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
     cd->setStoreAction(MTL::StoreActionStore);
+
 
     MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
     encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
@@ -314,7 +314,6 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
     encoder->endEncoding();
-
     renderPassDescriptor->release();
 
 
@@ -404,7 +403,6 @@ void MTLEngine::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
-
     if (engine->firstMouse)
     {
         engine->lastX = xpos;
