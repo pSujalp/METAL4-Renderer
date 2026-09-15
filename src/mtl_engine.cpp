@@ -128,9 +128,6 @@ void MTLEngine::createTriangle()
 
 void MTLEngine::createSkybox()
 {
-    
-    
-    
     const char *facePaths[6] = {
         "assets/right.jpg",
         "assets/left.jpg",
@@ -349,7 +346,7 @@ void MTLEngine::sendRenderCommand()
     mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
 
-    glm::mat4 skyboxMVP_GLM = perspectiveMatrix * viewMatrix;
+    glm::mat4 skyboxMVP_GLM = perspectiveMatrix * glm::mat4(glm::mat3(viewMatrix));
     MVP mvpSkybox;
     mvpSkybox.MVP = *reinterpret_cast<matrix_float4x4*>(&skyboxMVP_GLM);
     memcpy(skybox.MVPSkyBoxBuffer->contents(), &mvpSkybox, sizeof(MVP));

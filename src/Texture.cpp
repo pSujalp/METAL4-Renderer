@@ -52,7 +52,7 @@ CubeTexture::CubeTexture(const char* facePaths[6], MTL::Device* metalDevice) {
 
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
     desc->setTextureType(MTL::TextureTypeCube);
-    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
     desc->setWidth(faceSize);
     desc->setHeight(faceSize);
     desc->setMipmapLevelCount(1);
