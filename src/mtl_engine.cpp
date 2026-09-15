@@ -2,14 +2,12 @@
 #include "metal_view_bridge.h"
 #include "autorelease_pool.h"
 
-
-// #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/vec3.hpp> 
-#include <glm/vec4.hpp> 
-#include <glm/mat4x4.hpp> 
-#include <glm/ext/matrix_transform.hpp> 
-#include <glm/ext/matrix_clip_space.hpp> 
-#include <glm/ext/scalar_constants.hpp> 
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/scalar_constants.hpp>
 
 void MTLEngine::init()
 {
@@ -18,8 +16,7 @@ void MTLEngine::init()
     createTriangle();
     createCommandQueue();
     createRenderPipeline();
-
-    camera =  Camera();
+    camera = Camera();
 }
 
 void MTLEngine::run()
@@ -52,9 +49,10 @@ void MTLEngine::cleanup()
     if (frame_available_shared_event)
         frame_available_shared_event->release();
 
-    for(int i =0 ; i < 2 ; i++){
-    if (metal4CommandBuffer[i])
-        metal4CommandBuffer[i]->release();
+    for (int i = 0; i < 2; i++)
+    {
+        if (metal4CommandBuffer[i])
+            metal4CommandBuffer[i]->release();
     }
     if (metal4CommandQueue)
         metal4CommandQueue->release();
@@ -85,9 +83,8 @@ void MTLEngine::initWindow()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindow = glfwCreateWindow(800, 600, "Metal Engine", NULL, NULL);
-    
+
     glfwSetMouseButtonCallback(glfwWindow, mouse_button_callback);
-    
 
     if (!glfwWindow)
     {
@@ -123,54 +120,8 @@ void MTLEngine::initWindow()
 
 void MTLEngine::createTriangle()
 {
-    VertexData squareVertices[]{
-
-        {{-0.5, -0.5, 0.5, 1.0}, {0.0, 0.0}},
-        {{0.5, -0.5, 0.5, 1.0}, {1.0, 0.0}},
-        {{0.5, 0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, 0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, 0.5, 0.5, 1.0}, {0.0, 1.0}},
-        {{-0.5, -0.5, 0.5, 1.0}, {0.0, 0.0}},
-
-        {{0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-        {{-0.5, -0.5, -0.5, 1.0}, {1.0, 0.0}},
-        {{-0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, 0.5, -0.5, 1.0}, {0.0, 1.0}},
-        {{0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-
-        {{-0.5, 0.5, 0.5, 1.0}, {0.0, 0.0}},
-        {{0.5, 0.5, 0.5, 1.0}, {1.0, 0.0}},
-        {{0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, 0.5, -0.5, 1.0}, {0.0, 1.0}},
-        {{-0.5, 0.5, 0.5, 1.0}, {0.0, 0.0}},
-
-        {{-0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-        {{0.5, -0.5, -0.5, 1.0}, {1.0, 0.0}},
-        {{0.5, -0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, -0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, -0.5, 0.5, 1.0}, {0.0, 1.0}},
-        {{-0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-
-        {{-0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-        {{-0.5, -0.5, 0.5, 1.0}, {1.0, 0.0}},
-        {{-0.5, 0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, 0.5, 0.5, 1.0}, {1.0, 1.0}},
-        {{-0.5, 0.5, -0.5, 1.0}, {0.0, 1.0}},
-        {{-0.5, -0.5, -0.5, 1.0}, {0.0, 0.0}},
-
-        {{0.5, -0.5, 0.5, 1.0}, {0.0, 0.0}},
-        {{0.5, -0.5, -0.5, 1.0}, {1.0, 0.0}},
-        {{0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, 0.5, -0.5, 1.0}, {1.0, 1.0}},
-        {{0.5, 0.5, 0.5, 1.0}, {0.0, 1.0}},
-        {{0.5, -0.5, 0.5, 1.0}, {0.0, 0.0}},
-    };
-
     PrimitiveVerticesData primitiveVerticesData = PrimitiveVerticesData();
-
-    triangleVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.CubeVertices.data() , primitiveVerticesData.CubeVertices.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
+    triangleVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.CubeVertices.data(), primitiveVerticesData.CubeVertices.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
     transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
@@ -190,8 +141,9 @@ void MTLEngine::createCommandQueue()
         alloc = metalDevice->newCommandAllocator();
     }
 
-    for(i8 i =0 ; i < 2; i++){
-        auto * metal4CommandBuffer_v = metalDevice->newCommandBuffer();
+    for (i8 i = 0; i < 2; i++)
+    {
+        auto *metal4CommandBuffer_v = metalDevice->newCommandBuffer();
         metal4CommandBuffer.emplace_back(metal4CommandBuffer_v);
     }
 
@@ -212,17 +164,12 @@ void MTLEngine::createCommandQueue()
 
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)BUFFER_INDEX::COLTEXTURE_ID);
-
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
-
     residencyDesc->release();
     residency_set->addAllocation(triangleVertexBuffer);
     residency_set->addAllocation(grassTexture->texture);
     residency_set->addAllocation(transformationBuffer);
-
-    // residency_set->addAllocation(depthTexture);
-
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
 
@@ -367,8 +314,7 @@ void MTLEngine::sendRenderCommand()
         simd::float4{MVP_GLM[3][0], MVP_GLM[3][1], MVP_GLM[3][2], MVP_GLM[3][3]},
     });
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
-    
-    
+
     metal4CommandBuffer[0]->beginCommandBuffer(cmd_alloc);
 
     MTL4::RenderCommandEncoder *encoder = metal4CommandBuffer[0]->renderCommandEncoder(renderPassDescriptor);
@@ -382,11 +328,8 @@ void MTLEngine::sendRenderCommand()
     metal4CommandBuffer[0]->useResidencySet(metalLayerCpp->residencySet());
     metal4CommandBuffer[0]->endCommandBuffer();
 
-
     metal4CommandBuffer[1]->beginCommandBuffer(cmd_alloc);
     metal4CommandBuffer[1]->endCommandBuffer();
-
-
 
     metal4CommandQueue->wait(surface);
     metal4CommandQueue->commit(metal4CommandBuffer.data(), metal4CommandBuffer.size());
@@ -407,8 +350,8 @@ void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder *encoder)
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
 }
 
-
-void MTLEngine::ProcessKeyboardInput(float deltaTime){
+void MTLEngine::ProcessKeyboardInput(float deltaTime)
+{
     if (glfwGetKey(glfwWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(glfwWindow, true);
     if (glfwGetKey(glfwWindow, GLFW_KEY_W) == GLFW_PRESS)
@@ -425,23 +368,21 @@ void MTLEngine::ProcessKeyboardInput(float deltaTime){
         camera.ProcessKeyboard(DOWN, deltaTime);
 }
 
-
-
-
-void MTLEngine::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
-            int width, height;
-            glfwGetWindowSize(window, &width, &height);
-            double xpos = width / 2.0;
-            double ypos = height / 2.0;
-            glfwSetCursorPos(window, xpos, ypos);
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    } 
-    else{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        double xpos = width / 2.0;
+        double ypos = height / 2.0;
+        glfwSetCursorPos(window, xpos, ypos);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    else
+    {
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
     }
 }
