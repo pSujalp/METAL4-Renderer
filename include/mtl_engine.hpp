@@ -17,6 +17,7 @@
 #include "Shader.h"
 #include "VertexData.hpp"
 #include "simd/simd.h"
+#include <vector>
 
 #include <Texture.hpp>
 #include "utils.hpp"
@@ -52,7 +53,7 @@ private:
     MTL::Library* shaderLibrary        = nullptr;
 
     MTL4::CommandQueue*       metal4CommandQueue  = nullptr;
-    MTL4::CommandBuffer*      metal4CommandBuffer = nullptr;
+    std::vector<MTL4::CommandBuffer*>   metal4CommandBuffer;
     MTL::RenderPipelineState* metalRenderPSO      = nullptr;
     MTL::DepthStencilState * depthStencilState = nullptr;
     MTL4::Compiler*           metal4Compiler      = nullptr;
@@ -67,7 +68,6 @@ private:
     Texture* grassTexture;
     MTL::Texture * depthTexture;
     float windowHeight, windowWidth;
-
     MTL::Buffer * transformationBuffer;
 
   

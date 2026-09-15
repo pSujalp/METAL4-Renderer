@@ -49,8 +49,11 @@ void MTLEngine::cleanup()
     }
     if (frame_available_shared_event)
         frame_available_shared_event->release();
-    if (metal4CommandBuffer)
-        metal4CommandBuffer->release();
+
+    for(int i =0 ; i < 2 ; i++){
+    if (metal4CommandBuffer[i])
+        metal4CommandBuffer[i]->release();
+    }
     if (metal4CommandQueue)
         metal4CommandQueue->release();
     if (metal4Compiler)
@@ -179,7 +182,11 @@ void MTLEngine::createCommandQueue()
     {
         alloc = metalDevice->newCommandAllocator();
     }
-    metal4CommandBuffer = metalDevice->newCommandBuffer();
+
+    for(i8 i =0 ; i < 2; i++){
+        auto * metal4CommandBuffer_v = metalDevice->newCommandBuffer();
+        metal4CommandBuffer.emplace_back(metal4CommandBuffer_v);
+    }
 
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
@@ -194,7 +201,6 @@ void MTLEngine::createCommandQueue()
         exit(EXIT_FAILURE);
     }
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)BUFFER_INDEX::VERTEX_DATA);
-
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)BUFFER_INDEX::Transformation_DATA);
 
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
@@ -208,7 +214,7 @@ void MTLEngine::createCommandQueue()
     residency_set->addAllocation(grassTexture->texture);
     residency_set->addAllocation(transformationBuffer);
 
-    residency_set->addAllocation(depthTexture);
+    // residency_set->addAllocation(depthTexture);
 
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
@@ -285,7 +291,6 @@ void MTLEngine::draw()
 void MTLEngine::sendRenderCommand()
 {
     const size_t frame_idx = frame_num % kMaxFramesInFlight;
-
     if (frame_num >= kMaxFramesInFlight)
     {
         frame_available_shared_event->waitUntilSignaledValue(frame_num - kMaxFramesInFlight, UINT64_MAX);
@@ -312,7 +317,7 @@ void MTLEngine::sendRenderCommand()
 
     cd->setTexture(surface->texture());
     cd->setLoadAction(MTL::LoadActionClear);
-    cd->setClearColor(MTL::ClearColor(255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 1.0));
+    cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
     cd->setStoreAction(MTL::StoreActionStore);
 
     glm::mat4 model = glm::mat4(1.0f);
@@ -329,7 +334,6 @@ void MTLEngine::sendRenderCommand()
     accumulatedDegrees += rotationSpeedDegreesPerSecond * deltaTime;
     if (accumulatedDegrees >= 360.0f)
         accumulatedDegrees -= 360.0f;
-
     float angleInRadians = accumulatedDegrees * (M_PI / 180.0f);
     model = glm::rotate(model, angleInRadians, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 viewMatrix = glm::lookAt(
@@ -352,9 +356,11 @@ void MTLEngine::sendRenderCommand()
         simd::float4{MVP_GLM[3][0], MVP_GLM[3][1], MVP_GLM[3][2], MVP_GLM[3][3]},
     });
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
-    metal4CommandBuffer->beginCommandBuffer(cmd_alloc);
+    
+    
+    metal4CommandBuffer[0]->beginCommandBuffer(cmd_alloc);
 
-    MTL4::RenderCommandEncoder *encoder = metal4CommandBuffer->renderCommandEncoder(renderPassDescriptor);
+    MTL4::RenderCommandEncoder *encoder = metal4CommandBuffer[0]->renderCommandEncoder(renderPassDescriptor);
     encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     encoder->setCullMode(MTL::CullModeBack);
     encodeRenderCommand(encoder);
@@ -362,18 +368,21 @@ void MTLEngine::sendRenderCommand()
 
     CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
 
-    metal4CommandBuffer->useResidencySet(metalLayerCpp->residencySet());
+    metal4CommandBuffer[0]->useResidencySet(metalLayerCpp->residencySet());
+    metal4CommandBuffer[0]->endCommandBuffer();
 
-    metal4CommandBuffer->endCommandBuffer();
+
+    metal4CommandBuffer[1]->beginCommandBuffer(cmd_alloc);
+    metal4CommandBuffer[1]->endCommandBuffer();
+
+
 
     metal4CommandQueue->wait(surface);
-    metal4CommandQueue->commit(&metal4CommandBuffer, 1);
+    metal4CommandQueue->commit(metal4CommandBuffer.data(), metal4CommandBuffer.size());
     metal4CommandQueue->signalDrawable(surface);
     surface->present();
-
     metal4CommandQueue->signalEvent(frame_available_shared_event, frame_num);
     frame_num++;
-
     renderPassDescriptor->release();
 }
 
