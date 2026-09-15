@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Metal/Metal.hpp>
 #include <AppKit/AppKit.hpp>
 #include <MetalKit/MetalKit.hpp>
@@ -28,8 +30,8 @@ public:
         }
     }
 
-    MTL4::LibraryFunctionDescriptor* vertexShaderFunctionDescriptor;
-    MTL4::LibraryFunctionDescriptor* fragmentShaderFunctionDescriptor;
+    MTL4::LibraryFunctionDescriptor* vertexShaderFunctionDescriptor = nullptr;
+    MTL4::LibraryFunctionDescriptor* fragmentShaderFunctionDescriptor = nullptr;
 
     void cleanup()
     {

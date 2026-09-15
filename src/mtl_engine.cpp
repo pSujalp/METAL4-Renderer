@@ -110,6 +110,18 @@ void MTLEngine::createTriangle()
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
     transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
+
+
+   skybox = Skybox();
+   const char *facePaths[6] = {
+        "assets/right.jpg",
+        "assets/left.jpg",
+        "assets/top.jpg",
+        "assets/bottom.jpg",
+        "assets/front.jpg",
+        "assets/back.jpg"};
+
+    skybox = Skybox(metalDevice,facePaths,shaderLibrary,_mainDeletionQueue);
 }
 
 void MTLEngine::createCommandQueue()
@@ -140,8 +152,8 @@ void MTLEngine::createCommandQueue()
         if (frame_available_shared_event) frame_available_shared_event->release();
     });
     auto *argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
-    argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<BUFFER_INDEX>());
-    argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<TEX_INDEX>());
+    argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<BUFFER_INDEX>() );
+    argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<TEX_INDEX>() );
     arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
     argTableDesc->release();
     if (!arg_table)
@@ -152,14 +164,25 @@ void MTLEngine::createCommandQueue()
 
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
+
+    
+
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
+
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
     residencyDesc->release();
     residency_set->addAllocation(triangleVertexBuffer);
     residency_set->addAllocation(grassTexture->texture);
     residency_set->addAllocation(transformationBuffer);
+
+    residency_set->addAllocation(skybox.SkyBoxVertexBuffer);
+    residency_set->addAllocation(skybox.MVPSkyBoxBuffer);
+    residency_set->addAllocation(skybox.SamplerBuffer);
+    residency_set->addAllocation(skybox.skyboxTexture->texture);
+
+
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
     _mainDeletionQueue.push_function([=](){
@@ -314,6 +337,20 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+
+
+    glm::mat4 MVP_GLM = perspectiveMatrix * viewMatrix ;
+    MVP mvp1;
+    mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
+    memcpy(skybox.MVPSkyBoxBuffer->contents(), &mvp1, sizeof(MVP));
+
+    encoder->setRenderPipelineState(skybox.SkyboxPSO);
+    encoder->setDepthStencilState(skybox.skyboxDepthStencilState);
+    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageVertex);
+    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageFragment);
+    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,NS::UInteger(0), NS::UInteger(36));
+
+
     encoder->endEncoding();
     renderPassDescriptor->release();
 

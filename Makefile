@@ -36,6 +36,9 @@ SRC_CPP := $(wildcard src/*.cpp)
 SRC_MM  := $(wildcard src/*.mm)
 SRC_METAL  := $(wildcard shaders/*.metal)
 SRC_METAL1 := $(wildcard include/*.metal)
+METAL_AIR := \
+    $(patsubst include/%.metal,build/%.air,$(SRC_METAL1)) \
+    $(patsubst shaders/%.metal,build/%.air,$(SRC_METAL))
 OBJ := \
     $(patsubst src/%.c,build/%.c.o,$(SRC_C)) \
     $(patsubst src/%.cpp,build/%.cpp.o,$(SRC_CPP)) \
@@ -43,7 +46,7 @@ OBJ := \
 	
 ASSETS  := $(patsubst assets/%,build/assets/%,$(wildcard assets/*))
 BUILD_DIR := build
-FILES_TO_COPY := build/default.metallib build/default.air
+FILES_TO_COPY := build/default.metallib
 LIB_D := -Llib/
 
 $(BUILD_DIR):
@@ -63,11 +66,14 @@ build/assets/%: assets/%
 	mkdir -p $(dir $@)
 	cp $< $@
 
-build/default.air: $(SRC_METAL) $(SRC_METAL1) | $(BUILD_DIR)
-	xcrun -sdk macosx metal -c $(SRC_METAL) $(SRC_METAL1) -o $@
+build/%.air: include/%.metal | $(BUILD_DIR)
+	xcrun -sdk macosx metal -c $< -o $@
 
-build/default.metallib: build/default.air
-	xcrun -sdk macosx metallib $< -o $@
+build/%.air: shaders/%.metal | $(BUILD_DIR)
+	xcrun -sdk macosx metal -c $< -o $@
+
+build/default.metallib: $(METAL_AIR)
+	xcrun -sdk macosx metallib $(METAL_AIR) -o $@
 
 $(TARGET): $(OBJ) $(ASSETS) build/default.metallib
 	$(CXX) $(CXXFLAGS) $(OBJ) $(LDFLAGS) $(LIB_D) $(LDLIBS) -o $@

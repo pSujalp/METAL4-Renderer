@@ -31,6 +31,11 @@
 #include "ShaderFunctionDescriptor.h"
 #include "MultiCommandBuffer.h"
 
+#include "SkyboxData.hpp"
+#include "Skybox.h"
+
+
+
 
 class MTLEngine {
 public:
@@ -96,6 +101,8 @@ private:
 
 
     static MTLEngine* engine;
+
+    Skybox skybox;
     
 
 

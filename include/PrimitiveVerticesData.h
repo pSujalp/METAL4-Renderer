@@ -1,4 +1,6 @@
-#include "VertexData.hpp"
+#pragma once
+
+#include "SkyboxData.hpp"
 #include <vector>
 
 class PrimitiveVerticesData

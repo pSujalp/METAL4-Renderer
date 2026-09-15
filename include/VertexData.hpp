@@ -33,7 +33,3 @@ struct Uniforms
     int intAsBool;
 };
 
-
-struct SkyboxVertexData {
-    float3 position;
-};
