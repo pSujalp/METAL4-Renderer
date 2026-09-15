@@ -16,7 +16,7 @@ void MTLEngine::init()
     createTriangle();
     createCommandQueue();
     createRenderPipeline();
-    camera = Camera();
+    camera = Camera(glm::vec3(0,0,10.0f));
 }
 
 void MTLEngine::run()
@@ -35,37 +35,15 @@ void MTLEngine::cleanup()
 {
     glfwTerminate();
 
+    _mainDeletionQueue.flush();
     if (depthTexture)
         depthTexture->release();
-    if (residency_set)
-        residency_set->release();
-    if (arg_table)
-        arg_table->release();
-    for (auto *alloc : cmd_allocators)
-    {
-        if (alloc)
-            alloc->release();
-    }
-    if (frame_available_shared_event)
-        frame_available_shared_event->release();
-
-    for (int i = 0; i < 2; i++)
-    {
-        if (metal4CommandBuffer[i])
-            metal4CommandBuffer[i]->release();
-    }
-    if (metal4CommandQueue)
-        metal4CommandQueue->release();
-    if (metal4Compiler)
-        metal4Compiler->release();
     if (metalRenderPSO)
         metalRenderPSO->release();
     if (shaderLibrary)
         shaderLibrary->release();
     if (triangleVertexBuffer)
         triangleVertexBuffer->release();
-
-    metalDevice->release();
 }
 
 void MTLEngine::initDevice()
@@ -76,16 +54,16 @@ void MTLEngine::initDevice()
         std::cerr << "MTL::CreateSystemDefaultDevice() returned null.\n";
         exit(EXIT_FAILURE);
     }
+    _mainDeletionQueue.push_function([=](){
+        metalDevice->release();
+    });
 }
-
 void MTLEngine::initWindow()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindow = glfwCreateWindow(800, 600, "Metal Engine", NULL, NULL);
-
     glfwSetMouseButtonCallback(glfwWindow, mouse_button_callback);
-
     if (!glfwWindow)
     {
         glfwTerminate();
@@ -135,11 +113,15 @@ void MTLEngine::createCommandQueue()
         std::cerr << "newMTL4CommandQueue() returned null -- this device/OS doesn't support Metal 4.\n";
         exit(EXIT_FAILURE);
     }
-
-    for (auto &alloc : cmd_allocators)
-    {
+    
+    for (auto &alloc : cmd_allocators){
         alloc = metalDevice->newCommandAllocator();
     }
+
+    _mainDeletionQueue.push_function([=](){ 
+    if(metal4CommandQueue)    metal4CommandQueue->release();
+    for (auto *alloc : cmd_allocators) if (alloc) alloc->release();
+    });
 
     for (i8 i = 0; i < 2; i++)
     {
@@ -147,11 +129,21 @@ void MTLEngine::createCommandQueue()
         metal4CommandBuffer.emplace_back(metal4CommandBuffer_v);
     }
 
+    _mainDeletionQueue.push_function([=](){
+        for (int i = 0; i < 2; i++){
+
+        if (metal4CommandBuffer[i]) metal4CommandBuffer[i]->release();
+    }
+    });
+
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
+    _mainDeletionQueue.push_function([=](){
+        if (frame_available_shared_event) frame_available_shared_event->release();
+    });
     auto *argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
-    argTableDesc->setMaxBufferBindCount(3);
-    argTableDesc->setMaxTextureBindCount(1);
+    argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<BUFFER_INDEX>());
+    argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<TEX_INDEX>());
     arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
     argTableDesc->release();
     if (!arg_table)
@@ -159,11 +151,13 @@ void MTLEngine::createCommandQueue()
         std::cerr << "newArgumentTable() returned null.\n";
         exit(EXIT_FAILURE);
     }
-    arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)BUFFER_INDEX::VERTEX_DATA);
-    arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)BUFFER_INDEX::Transformation_DATA);
-
+    
+    arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
+    arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
-    arg_table->setTexture(r_ID, (NS::UInteger)BUFFER_INDEX::COLTEXTURE_ID);
+    arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
+
+
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
     residencyDesc->release();
@@ -172,6 +166,10 @@ void MTLEngine::createCommandQueue()
     residency_set->addAllocation(transformationBuffer);
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
+    _mainDeletionQueue.push_function([=](){
+        if (residency_set) residency_set->release();
+        if (arg_table) arg_table->release();
+    });
 
     CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
     metal4CommandQueue->addResidencySet(metalLayerCpp->residencySet());
@@ -188,7 +186,6 @@ void MTLEngine::createRenderPipeline()
     }
 
     MTL::PixelFormat pixelFormat = MetalViewBridge::GetPixelFormat(metalLayerHandle);
-
     auto *compilerDesc = MTL4::CompilerDescriptor::alloc()->init();
     metal4Compiler = metalDevice->newCompiler(compilerDesc, nullptr);
     compilerDesc->release();
@@ -198,6 +195,9 @@ void MTLEngine::createRenderPipeline()
         std::cerr << "newCompiler() returned null.\n";
         exit(EXIT_FAILURE);
     }
+
+    _mainDeletionQueue.push_function([=](){metal4Compiler->release();});
+
     auto *vertexFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
     vertexFunctionDescriptor->setLibrary(shaderLibrary);
     vertexFunctionDescriptor->setName(NS::String::string("vertexShader", NS::ASCIIStringEncoding));
@@ -216,7 +216,6 @@ void MTLEngine::createRenderPipeline()
     depthStencilDescriptor->setDepthWriteEnabled(true);
     depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
     depthStencilDescriptor->release();
-
     NS::Error *pPipelineError = nullptr;
     metalRenderPSO = metal4Compiler->newRenderPipelineState(pipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
     if (!metalRenderPSO)
@@ -231,7 +230,6 @@ void MTLEngine::createRenderPipeline()
         }
         exit(EXIT_FAILURE);
     }
-
     pipelineDescriptor->release();
     vertexFunctionDescriptor->release();
     fragmentFunctionDescriptor->release();
@@ -381,7 +379,6 @@ void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action
     }
     else
     {
-
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }

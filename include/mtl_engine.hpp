@@ -26,7 +26,8 @@
 #include "stb_image.h"
 #include "Camera.h"
 #include "PrimitiveVerticesData.h"
-
+#include <magic_enum/magic_enum.hpp>
+#include "DeletionQueue.h"
 
 class MTLEngine {
 public:
@@ -65,7 +66,6 @@ private:
     MTL::RenderPipelineState* metalRenderPSO      = nullptr;
     MTL::DepthStencilState * depthStencilState = nullptr;
     MTL4::Compiler*           metal4Compiler      = nullptr;
-
     Array<MTL4::CommandAllocator*, kMaxFramesInFlight> cmd_allocators{};
     MTL4::ArgumentTable* arg_table     = nullptr;
     MTL::ResidencySet*   residency_set = nullptr;
@@ -78,7 +78,7 @@ private:
     float windowHeight, windowWidth;
     MTL::Buffer * transformationBuffer;
     
-
+    DeletionQueue _mainDeletionQueue;
 
 
     Camera  camera;

@@ -10,6 +10,8 @@ CPPFLAGS := \
     -I$(EXTERNAL)/metal-cpp-extensions \
 	-I$(EXTERNAL)/GLFW \
 	-I$(EXTERNAL)/stb \
+	-I$(EXTERNAL)/magic_enum \
+	-I$(EXTERNAL)/
 
 CXXFLAGS := -Wall -std=c++23 -O2 -fno-objc-arc
 CFLAGS := -Wall -std=c11 -O2
