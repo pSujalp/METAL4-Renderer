@@ -16,7 +16,7 @@ void MTLEngine::init()
     createTriangle();
     createCommandQueue();
     createRenderPipeline();
-    camera = Camera(glm::vec3(0, 0, 10.0f));
+    camera = Camera(glm::vec3(0,0,10.0f));
 }
 
 void MTLEngine::run()
@@ -54,8 +54,9 @@ void MTLEngine::initDevice()
         std::cerr << "MTL::CreateSystemDefaultDevice() returned null.\n";
         exit(EXIT_FAILURE);
     }
-    _mainDeletionQueue.push_function([=]()
-                                     { metalDevice->release(); });
+    _mainDeletionQueue.push_function([=](){
+        metalDevice->release();
+    });
 }
 void MTLEngine::initWindow()
 {
@@ -112,25 +113,25 @@ void MTLEngine::createCommandQueue()
         std::cerr << "newMTL4CommandQueue() returned null -- this device/OS doesn't support Metal 4.\n";
         exit(EXIT_FAILURE);
     }
-
-    for (auto &alloc : cmd_allocators)
-    {
+    
+    for (auto &alloc : cmd_allocators){
         alloc = metalDevice->newCommandAllocator();
     }
 
-    _mainDeletionQueue.push_function([=]()
-                                     { 
+    _mainDeletionQueue.push_function([=](){ 
     if(metal4CommandQueue)    metal4CommandQueue->release();
-    for (auto *alloc : cmd_allocators) if (alloc) alloc->release(); });
+    for (auto *alloc : cmd_allocators) if (alloc) alloc->release();
+    });
 
-    multiCommandBuffer = MultiCommandBuffer(2, metalDevice, _mainDeletionQueue);
+    multiCommandBuffer = MultiCommandBuffer(2 , metalDevice,_mainDeletionQueue);
 
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
 
-    _mainDeletionQueue.push_function([=]()
-                                     {
-        if (frame_available_shared_event) frame_available_shared_event->release(); });
+    
+    _mainDeletionQueue.push_function([=](){
+        if (frame_available_shared_event) frame_available_shared_event->release();
+    });
     auto *argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
     argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<BUFFER_INDEX>());
     argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<TEX_INDEX>());
@@ -154,10 +155,10 @@ void MTLEngine::createCommandQueue()
     residency_set->addAllocation(transformationBuffer);
     residency_set->commit();
     metal4CommandQueue->addResidencySet(residency_set);
-    _mainDeletionQueue.push_function([=]()
-                                     {
+    _mainDeletionQueue.push_function([=](){
         if (residency_set) residency_set->release();
-        if (arg_table) arg_table->release(); });
+        if (arg_table) arg_table->release();
+    });
 
     CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
     metal4CommandQueue->addResidencySet(metalLayerCpp->residencySet());
@@ -183,8 +184,8 @@ void MTLEngine::createRenderPipeline()
         exit(EXIT_FAILURE);
     }
 
-    _mainDeletionQueue.push_function([=]()
-                                     { metal4Compiler->release(); });
+    _mainDeletionQueue.push_function([=](){metal4Compiler->release();});
+
 
     ShaderFunctionDescriptor shaderFunctionDescriptor(shaderLibrary, "vertexShader", "fragmentShader");
     auto *pipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init();
@@ -192,6 +193,7 @@ void MTLEngine::createRenderPipeline()
     pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
     pipelineDescriptor->setVertexFunctionDescriptor(shaderFunctionDescriptor.vertexShaderFunctionDescriptor);
     pipelineDescriptor->setFragmentFunctionDescriptor(shaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
+
 
     MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
@@ -214,6 +216,8 @@ void MTLEngine::createRenderPipeline()
         exit(EXIT_FAILURE);
     }
     pipelineDescriptor->release();
+
+    
 }
 
 void MTLEngine::draw()
@@ -226,6 +230,7 @@ void MTLEngine::draw()
 
     ProcessKeyboardInput(deltaTime);
 }
+
 void MTLEngine::sendRenderCommand()
 {
     const size_t frame_idx = frame_num % kMaxFramesInFlight;
@@ -270,56 +275,56 @@ void MTLEngine::sendRenderCommand()
     glm::mat4 MVP_GLM = perspectiveMatrix * viewMatrix * model;
 
     MVP mvp1;
-    mvp1.MVP = *reinterpret_cast<matrix_float4x4 *>(&MVP_GLM);
+    mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
-
-    multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer *cb){
-        MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
-        MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
-        MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
-
-        depthAttachment->setTexture(depthTexture);
-        depthAttachment->setLoadAction(MTL::LoadActionClear);
-        depthAttachment->setStoreAction(MTL::StoreActionDontCare);
-        depthAttachment->setClearDepth(1.0);
-
-        cd->setTexture(surface->texture());
-        cd->setLoadAction(MTL::LoadActionClear);
-        cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
-        cd->setStoreAction(MTL::StoreActionStore);
-
-        MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
-        encodeRenderCommand(encoder);
-
-        
-        renderPassDescriptor->release(); 
-    }
-    );
-
     
+
+    CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
+
+
+    multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
+
+    MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+    MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
+    MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
+
+    depthAttachment->setTexture(depthTexture);
+    depthAttachment->setLoadAction(MTL::LoadActionClear);
+    depthAttachment->setStoreAction(MTL::StoreActionDontCare);
+    depthAttachment->setClearDepth(1.0);
+
+    cd->setTexture(surface->texture());
+    cd->setLoadAction(MTL::LoadActionClear);
+    cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
+    cd->setStoreAction(MTL::StoreActionStore);
+
+    MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
+    encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+    encoder->setCullMode(MTL::CullModeBack);
+    encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
+    encoder->setRenderPipelineState(metalRenderPSO);
+    encoder->setDepthStencilState(depthStencilState);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+    encoder->endEncoding();
+
+    renderPassDescriptor->release();
+
+
+    });
     metal4CommandQueue->wait(surface);
     multiCommandBuffer.Execute(cmd_alloc, metalLayerHandle, metal4CommandQueue);
     metal4CommandQueue->signalDrawable(surface);
     surface->present();
     metal4CommandQueue->signalEvent(frame_available_shared_event, frame_num);
     frame_num++;
+    
 }
-
-
-
 
 void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder *encoder)
 {
-        encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
-        encoder->setCullMode(MTL::CullModeBack);
-        encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
-        encoder->setRenderPipelineState(metalRenderPSO);
-        encoder->setDepthStencilState(depthStencilState);
-        encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
-        encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-
-        encoder->endEncoding();
+    
 }
 
 void MTLEngine::ProcessKeyboardInput(float deltaTime)
@@ -343,8 +348,7 @@ void MTLEngine::ProcessKeyboardInput(float deltaTime)
 void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
         int width, height;
         glfwGetWindowSize(window, &width, &height);
         double xpos = width / 2.0;

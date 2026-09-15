@@ -49,7 +49,6 @@ public:
         for (size_t i = 0; i < count; i++)
         {
             MTL4::CommandBuffer *cb = metal4CommandBuffer[i];
-
             cb->beginCommandBuffer(cmd_alloc);
             DequecommandBuffer[i](cb);
             cb->useResidencySet(metalLayerCpp->residencySet());
