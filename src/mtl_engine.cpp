@@ -9,6 +9,8 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/scalar_constants.hpp>
 
+MTLEngine* MTLEngine::engine = nullptr;
+
 void MTLEngine::init()
 {
     initDevice();
@@ -17,6 +19,7 @@ void MTLEngine::init()
     createCommandQueue();
     createRenderPipeline();
     camera = Camera(glm::vec3(0,0,10.0f));
+    engine = this;
 }
 
 void MTLEngine::run()
@@ -72,6 +75,7 @@ void MTLEngine::initWindow()
 
     int width, height;
     glfwGetFramebufferSize(glfwWindow, &width, &height);
+    glfwSetFramebufferSizeCallback(glfwWindow,frameBufferSizeCallback);
 
     windowWidth = width;
     windowHeight = height;
@@ -360,4 +364,42 @@ void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
+}
+
+
+
+void MTLEngine::frameBufferSizeCallback(GLFWwindow *window, int width, int height){
+
+    if(MTLEngine::engine){
+
+        engine->resizeFrameBuffer(width, height);
+
+    }
+
+}
+
+
+void MTLEngine::resizeFrameBuffer(int width, int height){
+
+
+
+
+    if (depthTexture) {
+        depthTexture->release();
+        depthTexture = nullptr;
+    }
+
+    MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    TextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    TextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
+    TextureDescriptor->setWidth((NS::UInteger)windowWidth);
+    TextureDescriptor->setHeight((NS::UInteger)windowHeight);
+    TextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
+    TextureDescriptor->setSampleCount(4);
+
+    depthTexture = metalDevice->newTexture(TextureDescriptor);
+    TextureDescriptor->release();
+
+
 }
