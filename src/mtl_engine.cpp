@@ -292,7 +292,8 @@ void MTLEngine::sendRenderCommand()
         encodeRenderCommand(encoder);
 
         
-        renderPassDescriptor->release(); }
+        renderPassDescriptor->release(); 
+    }
     );
 
     
