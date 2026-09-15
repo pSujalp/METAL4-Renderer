@@ -123,14 +123,12 @@ void MTLEngine::createCommandQueue()
     for (auto *alloc : cmd_allocators) if (alloc) alloc->release();
     });
 
-    for (i8 i = 0; i < 2; i++)
-    {
-        auto *metal4CommandBuffer_v = metalDevice->newCommandBuffer();
-        metal4CommandBuffer.emplace_back(metal4CommandBuffer_v);
+    for (i8 i = 0; i < 1; i++){
+        metal4CommandBuffer.emplace_back(metalDevice->newCommandBuffer());
     }
 
     _mainDeletionQueue.push_function([=](){
-        for (int i = 0; i < 2; i++){
+        for (int i = 0; i < 1; i++){
 
         if (metal4CommandBuffer[i]) metal4CommandBuffer[i]->release();
     }
@@ -138,6 +136,8 @@ void MTLEngine::createCommandQueue()
 
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
+
+    
     _mainDeletionQueue.push_function([=](){
         if (frame_available_shared_event) frame_available_shared_event->release();
     });
@@ -210,9 +210,6 @@ void MTLEngine::createRenderPipeline()
     depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
     depthStencilDescriptor->release();
 
-
-
-
     NS::Error *pPipelineError = nullptr;
     metalRenderPSO = metal4Compiler->newRenderPipelineState(pipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
     if (!metalRenderPSO)
@@ -283,7 +280,6 @@ void MTLEngine::sendRenderCommand()
     float currentTime = static_cast<float>(glfwGetTime());
     float deltaTime = currentTime - lastTime;
     lastTime = currentTime;
-
     static float accumulatedDegrees = 0.0f;
     const float rotationSpeedDegreesPerSecond = 45.0f;
     accumulatedDegrees += rotationSpeedDegreesPerSecond * deltaTime;
@@ -318,8 +314,8 @@ void MTLEngine::sendRenderCommand()
     metal4CommandBuffer[0]->useResidencySet(metalLayerCpp->residencySet());
     metal4CommandBuffer[0]->endCommandBuffer();
 
-    metal4CommandBuffer[1]->beginCommandBuffer(cmd_alloc);
-    metal4CommandBuffer[1]->endCommandBuffer();
+    // metal4CommandBuffer[1]->beginCommandBuffer(cmd_alloc);
+    // metal4CommandBuffer[1]->endCommandBuffer();
 
     metal4CommandQueue->wait(surface);
     metal4CommandQueue->commit(metal4CommandBuffer.data(), metal4CommandBuffer.size());
