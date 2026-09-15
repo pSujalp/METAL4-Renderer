@@ -65,7 +65,7 @@ private:
     MTL::Library* shaderLibrary        = nullptr;
 
     MTL4::CommandQueue*       metal4CommandQueue  = nullptr;
-    std::vector<MTL4::CommandBuffer*>   metal4CommandBuffer;
+
     MTL::RenderPipelineState* metalRenderPSO      = nullptr;
     MTL::DepthStencilState * depthStencilState = nullptr;
     MTL4::Compiler*           metal4Compiler      = nullptr;
