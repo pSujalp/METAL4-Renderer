@@ -382,27 +382,20 @@ void MTLEngine::frameBufferSizeCallback(GLFWwindow *window, int width, int heigh
 
 void MTLEngine::resizeFrameBuffer(int width, int height){
 
-
-
-
     if (depthTexture) {
         depthTexture->release();
         depthTexture = nullptr;
     }
 
     MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    TextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    TextureDescriptor->setTextureType(MTL::TextureType2D);
     TextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
     TextureDescriptor->setWidth((NS::UInteger)windowWidth);
     TextureDescriptor->setHeight((NS::UInteger)windowHeight);
     TextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
     TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
-    TextureDescriptor->setSampleCount(4);
-
     depthTexture = metalDevice->newTexture(TextureDescriptor);
     TextureDescriptor->release();
-
-
 }
 
 
