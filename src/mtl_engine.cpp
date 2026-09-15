@@ -104,6 +104,7 @@ void MTLEngine::initWindow()
 
 void MTLEngine::createTriangle()
 {
+
     PrimitiveVerticesData primitiveVerticesData = PrimitiveVerticesData();
     triangleVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.CubeVertices.data(), primitiveVerticesData.CubeVertices.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));

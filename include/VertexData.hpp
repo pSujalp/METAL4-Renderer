@@ -32,3 +32,8 @@ struct Uniforms
     float2 time;
     int intAsBool;
 };
+
+
+struct SkyboxVertexData {
+    float3 position;
+};

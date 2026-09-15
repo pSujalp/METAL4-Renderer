@@ -7,4 +7,5 @@ public:
   
   PrimitiveVerticesData();
   std::vector<VertexData> CubeVertices ;
+  std::vector<SkyboxVertexData> SkyboxVertices;
 };
