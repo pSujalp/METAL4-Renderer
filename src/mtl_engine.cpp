@@ -67,6 +67,8 @@ void MTLEngine::initWindow()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindow = glfwCreateWindow(800, 600, "Metal Engine", NULL, NULL);
     glfwSetMouseButtonCallback(glfwWindow, mouse_button_callback);
+
+    glfwSetCursorPosCallback(glfwWindow, mouse_callback);
     if (!glfwWindow)
     {
         glfwTerminate();
@@ -347,12 +349,14 @@ void MTLEngine::ProcessKeyboardInput(float deltaTime)
         camera.ProcessKeyboard(UP, deltaTime);
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
+
+    if (glfwGetKey(glfwWindow, GLFW_KEY_M) == GLFW_PRESS) glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE){
         int width, height;
         glfwGetWindowSize(window, &width, &height);
         double xpos = width / 2.0;
@@ -360,10 +364,7 @@ void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action
         glfwSetCursorPos(window, xpos, ypos);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
-    else
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+   
 }
 
 
@@ -402,4 +403,28 @@ void MTLEngine::resizeFrameBuffer(int width, int height){
     TextureDescriptor->release();
 
 
+}
+
+
+void MTLEngine::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (engine->firstMouse)
+    {
+        engine->lastX = xpos;
+        engine->lastY = ypos;
+        engine->firstMouse = false;
+    }
+
+    float xoffset = xpos - engine->lastX;
+    float yoffset = engine->lastY - ypos; 
+
+    engine->lastX = xpos;
+    engine->lastY = ypos;
+
+
+    engine->camera.ProcessMouseMovement(xoffset, yoffset);
 }

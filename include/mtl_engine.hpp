@@ -54,6 +54,9 @@ private:
     static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
 
 
+    static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+
+
     void resizeFrameBuffer(int width, int height);
 
     void draw();
