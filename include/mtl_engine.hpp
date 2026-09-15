@@ -52,6 +52,8 @@ private:
     void createRenderPipeline();
     void ProcessKeyboardInput(float deltaTime);
 
+    void createShaderLibrary();
+
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
     // static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
@@ -67,6 +69,7 @@ private:
     void draw();
     void sendRenderCommand();
     void encodeRenderCommand(MTL4::RenderCommandEncoder* renderCommandEncoder);
+    void createSkybox();
 
     static constexpr size_t kMaxFramesInFlight = 3;
 

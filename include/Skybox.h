@@ -14,60 +14,43 @@ class Skybox
 public:
     Skybox() = default;
 
-    Skybox(MTL::Device *metalDevice, const char *facepaths[6], MTL::Library *lib, DeletionQueue & dq)
+    Skybox(MTL::Device *metalDevice, const char *facepaths[6], MTL::Library *lib, DeletionQueue &dq)
     {
         PrimitiveVerticesData primitiveVerticesData;
-        SkyBoxVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.SkyboxVertices.data(), sizeof(primitiveVerticesData.SkyboxVertices.size()) * sizeof(SkyboxVertexData), MTL::ResourceStorageModeShared);
+
+        SkyBoxVertexBuffer = metalDevice->newBuffer(
+            primitiveVerticesData.SkyboxVertices.data(),
+            primitiveVerticesData.SkyboxVertices.size() * sizeof(SkyboxVertexData),
+            MTL::ResourceStorageModeShared);
+
         MVPSkyBoxBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
         skyboxTexture = new CubeTexture(facepaths, metalDevice);
-        MTL::SamplerDescriptor *samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
-        samplerDescriptor->setMinFilter(MTL::SamplerMinMagFilterLinear);
-        samplerDescriptor->setMagFilter(MTL::SamplerMinMagFilterLinear);
-        samplerDescriptor->setMipFilter(MTL::SamplerMipFilterLinear);
-        samplerDescriptor->setSAddressMode(MTL::SamplerAddressModeClampToEdge);
-        samplerDescriptor->setTAddressMode(MTL::SamplerAddressModeClampToEdge);
-        samplerDescriptor->setRAddressMode(MTL::SamplerAddressModeClampToEdge);
-        samplerState = metalDevice->newSamplerState(samplerDescriptor);
-        samplerDescriptor->release();
-        SamplerBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
-        memcpy(SamplerBuffer->contents(), &samplerState, sizeof(MTL::SamplerState *));
+
+        
+
         MTL::DepthStencilDescriptor *depthDesc = MTL::DepthStencilDescriptor::alloc()->init();
         depthDesc->setDepthCompareFunction(MTL::CompareFunctionLessEqual);
         depthDesc->setDepthWriteEnabled(false);
         skyboxDepthStencilState = metalDevice->newDepthStencilState(depthDesc);
         depthDesc->release();
 
-        ShaderFunctionDescriptor shaderFunctionDescriptor(lib, "skyboxVertex", "skyboxFragment");
+        
 
-        auto *argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
-        argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<SKYBUFFER_INDEX>() + magic_enum::enum_count<SKYSAMPLER_INDEX>());
-        argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<SKYTEXTURE_INDEX>());
-        arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
-        argTableDesc->release();
-        if (!arg_table)
-        {
-            std::cerr << "newArgumentTable() returned null.\n";
-            exit(EXIT_FAILURE);
-        }
 
-        arg_table->setAddress(SkyBoxVertexBuffer->gpuAddress(), (NS::UInteger)(SKYBUFFER_INDEX::SKYBOX_BUFFER_INDEX));
-        arg_table->setAddress(MVPSkyBoxBuffer->gpuAddress(), (NS::UInteger)(SKYBUFFER_INDEX::MVP_BUFFER_INDEX));
-        arg_table->setAddress(SamplerBuffer->gpuAddress(), (NS::UInteger)(SKYSAMPLER_INDEX::SAMPLER_INDEX));
-        MTL::ResourceID r_ID = skyboxTexture->texture->gpuResourceID();
-        arg_table->setTexture(r_ID, (NS::UInteger)SKYTEXTURE_INDEX::SKYTEX_TEXTURE_INDEX);
+    
 
-        dq.push_function([=](){
-        if (arg_table) arg_table->release();
-    });
+        dq.push_function([=]()
+                         {
+            if (arg_table) arg_table->release(); });
     }
 
     MTL::Buffer *SkyBoxVertexBuffer;
     MTL::Buffer *MVPSkyBoxBuffer;
-    MTL::Buffer *SamplerBuffer;
-    MTL::SamplerState *samplerState;
     CubeTexture *skyboxTexture;
     MTL::RenderPipelineState *SkyboxPSO;
     MTL::DepthStencilState *skyboxDepthStencilState;
+    ShaderFunctionDescriptor shaderVertexFunctionDescriptor;
+    
 
     MTL4::ArgumentTable *arg_table;
 };

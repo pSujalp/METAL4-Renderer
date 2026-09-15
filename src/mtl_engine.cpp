@@ -15,11 +15,26 @@ void MTLEngine::init()
 {
     initDevice();
     initWindow();
+    createShaderLibrary();
     createTriangle();
+    createSkybox();          
+                              
+                              
     createCommandQueue();
     createRenderPipeline();
     camera = Camera(glm::vec3(0,0,10.0f));
     engine = this;
+}
+
+void MTLEngine::createShaderLibrary()
+{
+    using NS::StringEncoding::UTF8StringEncoding;
+    shaderLibrary = metalDevice->newDefaultLibrary();
+    if (!shaderLibrary)
+    {
+        std::cerr << "Failed to load default library.";
+        std::exit(-1);
+    }
 }
 
 void MTLEngine::run()
@@ -104,16 +119,19 @@ void MTLEngine::initWindow()
 
 void MTLEngine::createTriangle()
 {
-
     PrimitiveVerticesData primitiveVerticesData = PrimitiveVerticesData();
     triangleVertexBuffer = metalDevice->newBuffer(primitiveVerticesData.CubeVertices.data(), primitiveVerticesData.CubeVertices.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
     transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
+}
 
-
-   skybox = Skybox();
-   const char *facePaths[6] = {
+void MTLEngine::createSkybox()
+{
+    
+    
+    
+    const char *facePaths[6] = {
         "assets/right.jpg",
         "assets/left.jpg",
         "assets/top.jpg",
@@ -121,7 +139,7 @@ void MTLEngine::createTriangle()
         "assets/front.jpg",
         "assets/back.jpg"};
 
-    skybox = Skybox(metalDevice,facePaths,shaderLibrary,_mainDeletionQueue);
+    skybox = Skybox(metalDevice, facePaths, shaderLibrary, _mainDeletionQueue);
 }
 
 void MTLEngine::createCommandQueue()
@@ -132,12 +150,12 @@ void MTLEngine::createCommandQueue()
         std::cerr << "newMTL4CommandQueue() returned null -- this device/OS doesn't support Metal 4.\n";
         exit(EXIT_FAILURE);
     }
-    
+
     for (auto &alloc : cmd_allocators){
         alloc = metalDevice->newCommandAllocator();
     }
 
-    _mainDeletionQueue.push_function([=](){ 
+    _mainDeletionQueue.push_function([=](){
     if(metal4CommandQueue)    metal4CommandQueue->release();
     for (auto *alloc : cmd_allocators) if (alloc) alloc->release();
     });
@@ -147,7 +165,7 @@ void MTLEngine::createCommandQueue()
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
 
-    
+
     _mainDeletionQueue.push_function([=](){
         if (frame_available_shared_event) frame_available_shared_event->release();
     });
@@ -164,22 +182,24 @@ void MTLEngine::createCommandQueue()
 
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
-
-    
+    arg_table->setAddress(skybox.SkyBoxVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::SKYBOX_BUFFER_INDEX));
+    arg_table->setAddress(skybox.MVPSkyBoxBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::MVP_BUFFER_INDEX)); 
 
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
+
+    r_ID = skybox.skyboxTexture->texture->gpuResourceID();
+    arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::SKYTEX_TEXTURE_INDEX);
 
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
     residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
     residencyDesc->release();
     residency_set->addAllocation(triangleVertexBuffer);
-    residency_set->addAllocation(grassTexture->texture);
     residency_set->addAllocation(transformationBuffer);
+    residency_set->addAllocation(grassTexture->texture);
 
     residency_set->addAllocation(skybox.SkyBoxVertexBuffer);
     residency_set->addAllocation(skybox.MVPSkyBoxBuffer);
-    residency_set->addAllocation(skybox.SamplerBuffer);
     residency_set->addAllocation(skybox.skyboxTexture->texture);
 
 
@@ -197,12 +217,7 @@ void MTLEngine::createCommandQueue()
 void MTLEngine::createRenderPipeline()
 {
     using NS::StringEncoding::UTF8StringEncoding;
-    shaderLibrary = metalDevice->newDefaultLibrary();
-    if (!shaderLibrary)
-    {
-        std::cerr << "Failed to load default library.";
-        std::exit(-1);
-    }
+
     MTL::PixelFormat pixelFormat = MetalViewBridge::GetPixelFormat(metalLayerHandle);
     auto *compilerDesc = MTL4::CompilerDescriptor::alloc()->init();
     metal4Compiler = metalDevice->newCompiler(compilerDesc, nullptr);
@@ -216,23 +231,16 @@ void MTLEngine::createRenderPipeline()
 
     _mainDeletionQueue.push_function([=](){metal4Compiler->release();});
 
-
-    ShaderFunctionDescriptor shaderFunctionDescriptor(shaderLibrary, "vertexShader", "fragmentShader");
-    auto *pipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init();
-    pipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
-    pipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
-    pipelineDescriptor->setVertexFunctionDescriptor(shaderFunctionDescriptor.vertexShaderFunctionDescriptor);
-    pipelineDescriptor->setFragmentFunctionDescriptor(shaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
-
-
-    MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
-    depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
-    depthStencilDescriptor->setDepthWriteEnabled(true);
-    depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
-    depthStencilDescriptor->release();
+    
+    ShaderFunctionDescriptor cubeShaderFunctionDescriptor(shaderLibrary, "vertexShader", "fragmentShader");
+    auto *cubePipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
+    cubePipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
+    cubePipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
+    cubePipelineDescriptor->setVertexFunctionDescriptor(cubeShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
+    cubePipelineDescriptor->setFragmentFunctionDescriptor(cubeShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
 
     NS::Error *pPipelineError = nullptr;
-    metalRenderPSO = metal4Compiler->newRenderPipelineState(pipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
+    metalRenderPSO = metal4Compiler->newRenderPipelineState(cubePipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
     if (!metalRenderPSO)
     {
         if (pPipelineError)
@@ -245,9 +253,42 @@ void MTLEngine::createRenderPipeline()
         }
         exit(EXIT_FAILURE);
     }
-    pipelineDescriptor->release();
 
     
+    
+    
+    ShaderFunctionDescriptor skyboxShaderFunctionDescriptor(shaderLibrary, "skyboxVertex", "skyboxFragment");
+    skybox.shaderVertexFunctionDescriptor = skyboxShaderFunctionDescriptor;
+
+    auto *skyboxPipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
+    skyboxPipelineDescriptor->setLabel(NS::String::string("Skybox", NS::ASCIIStringEncoding));
+    skyboxPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
+    skyboxPipelineDescriptor->setVertexFunctionDescriptor(skyboxShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
+    skyboxPipelineDescriptor->setFragmentFunctionDescriptor(skyboxShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
+
+    pPipelineError = nullptr;
+    skybox.SkyboxPSO = metal4Compiler->newRenderPipelineState(skyboxPipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
+    if (!skybox.SkyboxPSO) 
+    {
+        if (pPipelineError)
+        {
+            std::cerr << "Pipeline compile error: " << pPipelineError->localizedDescription()->utf8String() << std::endl;
+        }
+        else
+        {
+            std::cerr << "newRenderPipelineState() returned null (no error object provided).\n";
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
+    depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
+    depthStencilDescriptor->setDepthWriteEnabled(true);
+    depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
+    depthStencilDescriptor->release();
+
+    cubePipelineDescriptor->release();
+    skyboxPipelineDescriptor->release(); 
 }
 
 void MTLEngine::draw()
@@ -307,7 +348,11 @@ void MTLEngine::sendRenderCommand()
     MVP mvp1;
     mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
     memcpy(transformationBuffer->contents(), &mvp1, sizeof(MVP));
-    
+
+    glm::mat4 skyboxMVP_GLM = perspectiveMatrix * viewMatrix;
+    MVP mvpSkybox;
+    mvpSkybox.MVP = *reinterpret_cast<matrix_float4x4*>(&skyboxMVP_GLM);
+    memcpy(skybox.MVPSkyBoxBuffer->contents(), &mvpSkybox, sizeof(MVP));
 
     CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
 
@@ -338,16 +383,10 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
 
-
-    glm::mat4 MVP_GLM = perspectiveMatrix * viewMatrix ;
-    MVP mvp1;
-    mvp1.MVP = *reinterpret_cast<matrix_float4x4*>(&MVP_GLM);
-    memcpy(skybox.MVPSkyBoxBuffer->contents(), &mvp1, sizeof(MVP));
-
     encoder->setRenderPipelineState(skybox.SkyboxPSO);
     encoder->setDepthStencilState(skybox.skyboxDepthStencilState);
-    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageVertex);
-    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageFragment);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,NS::UInteger(0), NS::UInteger(36));
 
 
@@ -362,12 +401,12 @@ void MTLEngine::sendRenderCommand()
     surface->present();
     metal4CommandQueue->signalEvent(frame_available_shared_event, frame_num);
     frame_num++;
-    
+
 }
 
 void MTLEngine::encodeRenderCommand(MTL4::RenderCommandEncoder *encoder)
 {
-    
+
 }
 
 void MTLEngine::ProcessKeyboardInput(float deltaTime)
@@ -401,7 +440,7 @@ void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action
         glfwSetCursorPos(window, xpos, ypos);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
-   
+
 }
 
 
@@ -449,7 +488,7 @@ void MTLEngine::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - engine->lastX;
-    float yoffset = engine->lastY - ypos; 
+    float yoffset = engine->lastY - ypos;
 
     engine->lastX = xpos;
     engine->lastY = ypos;

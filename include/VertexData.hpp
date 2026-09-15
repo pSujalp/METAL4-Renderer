@@ -15,11 +15,14 @@ enum class BUFFER_INDEX : uint8_t
 {
     VERTEX_DATA,
     Transformation_DATA,
+    SKYBOX_BUFFER_INDEX ,
+    MVP_BUFFER_INDEX 
 };
 
 enum class TEX_INDEX : uint8_t
 {
     COLTEXTURE_ID,
+    SKYTEX_TEXTURE_INDEX 
 };
 
 struct MVP

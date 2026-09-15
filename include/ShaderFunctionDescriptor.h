@@ -10,6 +10,8 @@
 class ShaderFunctionDescriptor
 {
 public:
+
+    ShaderFunctionDescriptor() = default;
     ShaderFunctionDescriptor(const MTL::Library* shaderLibrary,
                             const std::optional<std::string> &vertexName ,
                             const std::optional<std::string> &fragmentName)
