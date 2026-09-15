@@ -44,7 +44,8 @@ OBJ := \
     $(patsubst src/%.cpp,build/%.cpp.o,$(SRC_CPP)) \
     $(patsubst src/%.mm,build/%.mm.o,$(SRC_MM))
 	
-ASSETS  := $(patsubst assets/%,build/assets/%,$(wildcard assets/*))
+ASSET_DIR := build/assets
+ASSETS := $(ASSET_DIR)
 BUILD_DIR := build
 FILES_TO_COPY := build/default.metallib
 LIB_D := -Llib/
@@ -62,9 +63,9 @@ $(BUILD_DIR)/%: % | $(BUILD_DIR)
 	mkdir -p $(dir $@)
 	cp $< $@
 
-build/assets/%: assets/%
-	mkdir -p $(dir $@)
-	cp $< $@
+$(ASSET_DIR): | $(BUILD_DIR)
+	mkdir -p $@
+	cp -R assets/. $@/
 
 build/%.air: include/%.metal | $(BUILD_DIR)
 	xcrun -sdk macosx metal -c $< -o $@

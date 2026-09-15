@@ -18,8 +18,7 @@ void MTLEngine::init()
     createShaderLibrary();
     createTriangle();
     createSkybox();          
-                              
-                              
+                                
     createCommandQueue();
     createRenderPipeline();
     camera = Camera(glm::vec3(0,0,10.0f));
@@ -129,12 +128,12 @@ void MTLEngine::createTriangle()
 void MTLEngine::createSkybox()
 {
     const char *facePaths[6] = {
-        "assets/right.jpg",
-        "assets/left.jpg",
-        "assets/top.jpg",
-        "assets/bottom.jpg",
-        "assets/front.jpg",
-        "assets/back.jpg"};
+        "assets/Standard-Cube-Map/right.jpg",
+        "assets/Standard-Cube-Map/left.jpg",
+        "assets/Standard-Cube-Map/top.jpg",
+        "assets/Standard-Cube-Map/bottom.jpg",
+        "assets/Standard-Cube-Map/front.jpg",
+        "assets/Standard-Cube-Map/back.jpg"};
 
     skybox = Skybox(metalDevice, facePaths, shaderLibrary, _mainDeletionQueue);
 }
@@ -161,8 +160,6 @@ void MTLEngine::createCommandQueue()
 
     frame_available_shared_event = metalDevice->newSharedEvent();
     frame_available_shared_event->setSignaledValue(0);
-
-
     _mainDeletionQueue.push_function([=](){
         if (frame_available_shared_event) frame_available_shared_event->release();
     });
@@ -180,8 +177,6 @@ void MTLEngine::createCommandQueue()
 
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
-    
-
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
 
@@ -249,8 +244,6 @@ void MTLEngine::createRenderPipeline()
         exit(EXIT_FAILURE);
     }
 
-    
-    
     
     ShaderFunctionDescriptor skyboxShaderFunctionDescriptor(shaderLibrary, "skyboxVertex", "skyboxFragment");
     skybox.shaderVertexFunctionDescriptor = skyboxShaderFunctionDescriptor;
@@ -377,7 +370,6 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-
     encoder->setRenderPipelineState(skybox.SkyboxPSO);
     encoder->setDepthStencilState(skybox.skyboxDepthStencilState);
     encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageVertex);
@@ -385,8 +377,6 @@ void MTLEngine::sendRenderCommand()
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,NS::UInteger(0), NS::UInteger(36));
     encoder->endEncoding();
     renderPassDescriptor->release();
-
-
     });
 
     
