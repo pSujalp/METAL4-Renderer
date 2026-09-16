@@ -318,7 +318,6 @@ void MTLEngine::init()
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
         ProcessKeyboardInput(deltaTime);
     }
 
@@ -355,9 +354,7 @@ void MTLEngine::init()
             accumulatedDegrees -= 360.0f;
         float angleInRadians = accumulatedDegrees * (M_PI / 180.0f);
         model = glm::rotate(model, angleInRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-
         glm::mat4 viewMatrix = camera.GetViewMatrix();
-
         float aspectRatio = (float)windowWidth / (float)windowHeight;
         float fov = camera.Zoom;
         float nearZ = 0.1f;
@@ -401,13 +398,7 @@ void MTLEngine::init()
         encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
         encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
         encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)6);
-
-       
-
-
         encoder->endEncoding();
-
-
         renderPassDescriptor->release();
         });
 
