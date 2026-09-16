@@ -490,14 +490,7 @@ void MTLEngine::init()
             depthTexture->release();
             depthTexture = nullptr;
         }
-        if(_renderTexture){
-            _renderTexture->release();
-            _renderTexture = nullptr;
-        }
-        if(_offscreenDepthTexture){
-            _offscreenDepthTexture->release();
-            _offscreenDepthTexture = nullptr;
-        }
+        
 
         MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
         TextureDescriptor->setTextureType(MTL::TextureType2D);
