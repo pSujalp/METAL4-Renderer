@@ -327,7 +327,7 @@ void MTLEngine::sendRenderCommand()
     MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
     MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
     MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
-
+    
     depthAttachment->setTexture(depthTexture);
     depthAttachment->setLoadAction(MTL::LoadActionClear);
     depthAttachment->setStoreAction(MTL::StoreActionDontCare);
@@ -413,9 +413,7 @@ void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action
 void MTLEngine::frameBufferSizeCallback(GLFWwindow *window, int width, int height){
 
     if(MTLEngine::engine){
-
         engine->resizeFrameBuffer(width, height);
-
     }
 
 }
