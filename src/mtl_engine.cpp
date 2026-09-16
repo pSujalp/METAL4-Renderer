@@ -318,6 +318,10 @@ void MTLEngine::init()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         ProcessKeyboardInput(deltaTime);
+
+        std::string fps = "Metal 4 Renderer \t\t\t\t" + std::to_string((int)1/deltaTime);
+
+        glfwSetWindowTitle(glfwWindow, fps.c_str());
     }
 
     void MTLEngine::sendRenderCommand()
@@ -422,7 +426,6 @@ void MTLEngine::init()
         encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
         encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
         skybox.Draw(encoder);
-
         encoder->endEncoding();
         OffScreenRenderPassDescriptor->release();
 
