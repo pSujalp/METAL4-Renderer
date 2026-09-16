@@ -11,7 +11,7 @@ Texture::Texture(const char* filepath, MTL::Device* metalDevice) {
     assert(image != NULL);
 
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
-    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
     desc->setWidth(width);
     desc->setHeight(height);
     desc->setUsage(MTL::TextureUsageShaderRead);
@@ -52,7 +52,7 @@ CubeTexture::CubeTexture(const char* facePaths[6], MTL::Device* metalDevice) {
 
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
     desc->setTextureType(MTL::TextureTypeCube);
-    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
     desc->setWidth(faceSize);
     desc->setHeight(faceSize);
     desc->setMipmapLevelCount(1);
