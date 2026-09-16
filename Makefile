@@ -1,7 +1,7 @@
 CXX := clang++
 CC := clang
 
-
+ASSIMP_PREFIX := $(shell brew --prefix assimp)
 
 EXTERNAL := external
 CPPFLAGS := \
@@ -11,7 +11,8 @@ CPPFLAGS := \
 	-I$(EXTERNAL)/GLFW \
 	-I$(EXTERNAL)/stb \
 	-I$(EXTERNAL)/magic_enum \
-	-I$(EXTERNAL)/
+	-I$(EXTERNAL)/ \
+	-I$(ASSIMP_PREFIX)/include
 
 CXXFLAGS := -Wall -std=c++23 -O2 -fno-objc-arc
 CFLAGS := -Wall -std=c11 -O2
@@ -19,7 +20,6 @@ CPPFLAGS += -I$(shell brew --prefix glfw)/include
 CPPFLAGS += -I$(shell brew --prefix glm)/include
 LDFLAGS += \
     -L$(shell brew --prefix glfw)/lib/ \
-	-L$(shell brew --prefix cglm)/lib/ \
     -framework Metal \
     -framework Foundation \
     -framework Cocoa \
@@ -27,9 +27,13 @@ LDFLAGS += \
     -framework MetalKit \
     -framework ModelIO \
     -framework MetalPerformanceShaders \
-	-framework QuartzCore
+	-framework QuartzCore \
+	-L$(ASSIMP_PREFIX)/lib
 
 LDLIBS += -lglfw
+LDLIBS += -lassimp
+
+
 TARGET := build/metal
 SRC_C   := $(wildcard src/*.c)
 SRC_CPP := $(wildcard src/*.cpp)

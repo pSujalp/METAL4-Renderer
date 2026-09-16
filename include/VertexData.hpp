@@ -2,8 +2,8 @@
 
 #pragma once
 #include <simd/simd.h>
-
 using namespace simd;
+
 
 struct VertexData
 {
@@ -35,9 +35,9 @@ struct Uniforms
     int intAsBool;
 };
 
-
-struct AAPLVertex {
+struct AAPLVertex
+{
     float2 position;
     float2 textureCoordinate;
-   
 };
+
