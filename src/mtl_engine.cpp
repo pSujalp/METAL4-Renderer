@@ -245,29 +245,7 @@ void MTLEngine::createRenderPipeline()
     }
 
     
-    ShaderFunctionDescriptor skyboxShaderFunctionDescriptor(shaderLibrary, "skyboxVertex", "skyboxFragment");
-    skybox.shaderVertexFunctionDescriptor = skyboxShaderFunctionDescriptor;
-
-    auto *skyboxPipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
-    skyboxPipelineDescriptor->setLabel(NS::String::string("Skybox", NS::ASCIIStringEncoding));
-    skyboxPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
-    skyboxPipelineDescriptor->setVertexFunctionDescriptor(skyboxShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
-    skyboxPipelineDescriptor->setFragmentFunctionDescriptor(skyboxShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
-
-    pPipelineError = nullptr;
-    skybox.SkyboxPSO = metal4Compiler->newRenderPipelineState(skyboxPipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
-    if (!skybox.SkyboxPSO) 
-    {
-        if (pPipelineError)
-        {
-            std::cerr << "Pipeline compile error: " << pPipelineError->localizedDescription()->utf8String() << std::endl;
-        }
-        else
-        {
-            std::cerr << "newRenderPipelineState() returned null (no error object provided).\n";
-        }
-        exit(EXIT_FAILURE);
-    }
+    skybox.UpdateShaders(shaderLibrary,_mainDeletionQueue,metal4Compiler,pixelFormat);
 
     MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
@@ -276,7 +254,6 @@ void MTLEngine::createRenderPipeline()
     depthStencilDescriptor->release();
 
     cubePipelineDescriptor->release();
-    skyboxPipelineDescriptor->release(); 
 }
 
 void MTLEngine::draw()
