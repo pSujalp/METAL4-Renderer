@@ -9,17 +9,21 @@
     #include <glm/ext/matrix_clip_space.hpp>
     #include <glm/ext/scalar_constants.hpp>
 
-    MTLEngine* MTLEngine::engine = nullptr;
+MTLEngine* MTLEngine::engine = nullptr;
 
 void MTLEngine::init()
 {
     initDevice();
     initWindow();
     createShaderLibrary();
+
+
     createSkybox();  
     createTriangle();
-    createRenderPipeline();   // now creates _renderTexture, _offscreenDepthTexture, PSOs
-    createCommandQueue();     // now safe to reference _renderTexture
+
+
+    createRenderPipeline();
+    createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
     engine = this;
 }
@@ -125,12 +129,12 @@ void MTLEngine::init()
         grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
         transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
         static const AAPLVertex quadVertices[] = {
-                {{-1.0, -1.0}, {0.0, 0.0, 0.0, 1.0}, {0.0, 1.0}},
-                {{ 1.0, -1.0}, {1.0, 0.0, 0.0, 1.0}, {1.0, 1.0}},
-                {{ 1.0,  1.0}, {1.0, 1.0, 0.0, 1.0}, {1.0, 0.0}},
-                {{ 1.0,  1.0}, {1.0, 1.0, 0.0, 1.0}, {1.0, 0.0}},
-                {{-1.0,  1.0}, {0.0, 1.0, 0.0, 1.0}, {0.0, 0.0}},
-                {{-1.0, -1.0}, {0.0, 0.0, 0.0, 1.0}, {0.0, 1.0}},
+                {{-1.0, -1.0}, {0.0, 1.0}},
+                {{ 1.0, -1.0},  {1.0, 1.0}},
+                {{ 1.0,  1.0},  {1.0, 0.0}},
+                {{ 1.0,  1.0},  {1.0, 0.0}},
+                {{-1.0,  1.0},  {0.0, 0.0}},
+                {{-1.0, -1.0}, {0.0, 1.0}},
             };
 
         OffScreenVertexBuffer = metalDevice->newBuffer(&quadVertices,sizeof(quadVertices),MTL::ResourceStorageModeShared);
@@ -495,6 +499,14 @@ void MTLEngine::init()
             depthTexture->release();
             depthTexture = nullptr;
         }
+        if(_renderTexture){
+            _renderTexture->release();
+            _renderTexture = nullptr;
+        }
+        if(_offscreenDepthTexture){
+            _offscreenDepthTexture->release();
+            _offscreenDepthTexture = nullptr;
+        }
 
         MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
         TextureDescriptor->setTextureType(MTL::TextureType2D);
@@ -505,6 +517,7 @@ void MTLEngine::init()
         TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
         depthTexture = metalDevice->newTexture(TextureDescriptor);
         TextureDescriptor->release();
+
 
     }
 

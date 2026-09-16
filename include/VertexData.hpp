@@ -38,7 +38,6 @@ struct Uniforms
 
 struct AAPLVertex {
     float2 position;
-    float4 color;
     float2 textureCoordinate;
    
 };
