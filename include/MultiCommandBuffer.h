@@ -18,8 +18,7 @@ class MultiCommandBuffer
 {
 public:
     MultiCommandBuffer() = default;
-
-    MultiCommandBuffer(const uint8_t number, MTL::Device *metalDevice, DeletionQueue &dq)
+    MultiCommandBuffer(const uint8_t &number, MTL::Device *metalDevice, DeletionQueue &dq)
     {
         metal4CommandBuffer.reserve(number);
         for (size_t i = 0; i < number; i++)

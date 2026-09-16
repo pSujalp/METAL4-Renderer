@@ -311,7 +311,6 @@ void MTLEngine::init()
         OffScreenPipelineDescriptor->release();
         cubePipelineDescriptor->release();
     }
-
     void MTLEngine::draw()
     {
         sendRenderCommand();

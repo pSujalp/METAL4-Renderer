@@ -16,6 +16,7 @@ Texture::Texture(const char* filepath, MTL::Device* metalDevice) {
     desc->setHeight(height);
     desc->setUsage(MTL::TextureUsageShaderRead);
     desc->setStorageMode(MTL::StorageModeShared);
+    desc->setMipmapLevelCount((NS::UInteger) 8);
 
     texture = device->newTexture(desc);
     texture->replaceRegion(MTL::Region(0, 0, 0, width, height, 1), 0, image, 4 * width);

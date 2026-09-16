@@ -16,17 +16,17 @@ public:
                             const std::optional<std::string> &vertexName ,
                             const std::optional<std::string> &fragmentName)
     {
-        vertexShaderFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
-        fragmentShaderFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
-
+        
         if (vertexName.has_value())
         {
+            vertexShaderFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
             vertexShaderFunctionDescriptor->setLibrary(shaderLibrary);
             vertexShaderFunctionDescriptor->setName(NS::String::string(vertexName.value().c_str(), NS::ASCIIStringEncoding));
         }
 
         if (fragmentName.has_value())
         {
+            fragmentShaderFunctionDescriptor = MTL4::LibraryFunctionDescriptor::alloc()->init();
             fragmentShaderFunctionDescriptor->setLibrary(shaderLibrary);
             fragmentShaderFunctionDescriptor->setName(NS::String::string(fragmentName.value().c_str(), NS::ASCIIStringEncoding));
         }
