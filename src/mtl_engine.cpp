@@ -16,9 +16,11 @@ void MTLEngine::init()
     initDevice();
     initWindow();
     createShaderLibrary();
+//////////////////////////////////
+    createSkybox();  
     createTriangle();
-    createSkybox();          
-                                
+            
+//////////////////////////////     
     createCommandQueue();
     createRenderPipeline();
     camera = Camera(glm::vec3(0,0,10.0f));
@@ -188,9 +190,7 @@ void MTLEngine::createCommandQueue()
     residency_set->addAllocation(transformationBuffer);
     residency_set->addAllocation(grassTexture->texture);
 
-    residency_set->addAllocation(skybox.SkyBoxVertexBuffer);
-    residency_set->addAllocation(skybox.MVPSkyBoxBuffer);
-    residency_set->addAllocation(skybox.skyboxTexture->texture);
+    skybox.UpdateResidency(residency_set);
 
 
     residency_set->commit();
@@ -347,12 +347,15 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-    encoder->setRenderPipelineState(skybox.SkyboxPSO);
-    encoder->setDepthStencilState(skybox.skyboxDepthStencilState);
-    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageVertex);
-    encoder->setArgumentTable(skybox.arg_table, MTL::RenderStageFragment);
-    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle,NS::UInteger(0), NS::UInteger(36));
+
+
+    
+    skybox.Draw(encoder);
+
+
     encoder->endEncoding();
+
+
     renderPassDescriptor->release();
     });
 
