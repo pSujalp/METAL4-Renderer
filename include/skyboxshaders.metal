@@ -12,8 +12,8 @@ struct SkyboxVOut {
 
 vertex SkyboxVOut skyboxVertex(
     uint  vid  [[vertex_id]],
-    constant SkyboxVertexData* verts    [[buffer(BUFFER_INDEX::SKYBOX_BUFFER_INDEX)]],
-    constant MVP&          mvp      [[buffer(BUFFER_INDEX::MVP_BUFFER_INDEX)]])
+    constant SkyboxVertexData* verts    [[buffer(SKYBUFFER_INDEX::SKYBOX_BUFFER_INDEX)]],
+    constant MVP&          mvp      [[buffer(SKYBUFFER_INDEX::MVP_BUFFER_INDEX)]])
 {
     SkyboxVOut out;
     out.direction = verts[vid].position;
@@ -24,7 +24,7 @@ vertex SkyboxVOut skyboxVertex(
 
 fragment float4 skyboxFragment(
     SkyboxVOut             in       [[stage_in]],
-    texturecube<half>      skyTex   [[texture(TEX_INDEX::SKYTEX_TEXTURE_INDEX)]])
+    texturecube<half>      skyTex   [[texture(SKYTEX_INDEX::SKYTEX_TEXTURE_INDEX)]])
 {
     constexpr sampler cubeSampler(mip_filter::linear,
                                    mag_filter::linear,

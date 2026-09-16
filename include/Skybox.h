@@ -33,8 +33,8 @@ public:
         depthDesc->release();
 
         auto *argTableDesc = MTL4::ArgumentTableDescriptor::alloc()->init();
-        argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<BUFFER_INDEX>());
-        argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<TEX_INDEX>());
+        argTableDesc->setMaxBufferBindCount(magic_enum::enum_count<SKYBUFFER_INDEX>());
+        argTableDesc->setMaxTextureBindCount(magic_enum::enum_count<SKYTEX_INDEX>());
         arg_table = metalDevice->newArgumentTable(argTableDesc, nullptr);
         argTableDesc->release();
         if (!arg_table)
@@ -43,10 +43,10 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        arg_table->setAddress(SkyBoxVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::SKYBOX_BUFFER_INDEX));
-        arg_table->setAddress(MVPSkyBoxBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::MVP_BUFFER_INDEX));
+        arg_table->setAddress(SkyBoxVertexBuffer->gpuAddress(), (NS::UInteger)(SKYBUFFER_INDEX::SKYBOX_BUFFER_INDEX));
+        arg_table->setAddress(MVPSkyBoxBuffer->gpuAddress(), (NS::UInteger)(SKYBUFFER_INDEX::MVP_BUFFER_INDEX));
         MTL::ResourceID r_ID = skyboxTexture->texture->gpuResourceID();
-        arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::SKYTEX_TEXTURE_INDEX);
+        arg_table->setTexture(r_ID, (NS::UInteger)SKYTEX_INDEX::SKYTEX_TEXTURE_INDEX);
 
 
         dq.push_function([=](){
