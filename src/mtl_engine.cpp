@@ -184,8 +184,6 @@ void MTLEngine::init()
             std::cerr << "newArgumentTable() returned null.\n";
             exit(EXIT_FAILURE);
         }
-
-
         arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
         arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
         arg_table->setAddress(OffScreenVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::AAPL_Vertex_DATA));
@@ -193,7 +191,6 @@ void MTLEngine::init()
         arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
         r_ID = _renderTexture->gpuResourceID();
         arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::AAPL_TEX_ID);
-
 
         auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
         residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
@@ -286,13 +283,12 @@ void MTLEngine::init()
 
         
 
-            ShaderFunctionDescriptor OffScreenRenderPassShaderFunctionDescriptor(shaderLibrary, "vertexRenderPass", "fragmentRenderPass");
-
+        ShaderFunctionDescriptor OffScreenRenderPasssShaderFunctionDescriptor(shaderLibrary, "vertexRenderPass", "fragmentRenderPass");
         auto * OffScreenPipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
         OffScreenPipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
         OffScreenPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
-        OffScreenPipelineDescriptor->setVertexFunctionDescriptor(OffScreenRenderPassShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
-        OffScreenPipelineDescriptor->setFragmentFunctionDescriptor(OffScreenRenderPassShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
+        OffScreenPipelineDescriptor->setVertexFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
+        OffScreenPipelineDescriptor->setFragmentFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
         pPipelineError = nullptr;
         
         RenderPassPSO = metal4Compiler->newRenderPipelineState(OffScreenPipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
@@ -378,51 +374,67 @@ void MTLEngine::init()
 
 
         multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
-            MTL4::RenderPassDescriptor *offscreenDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
-            offscreenDescriptor->colorAttachments()->object(0)->setTexture(_renderTexture);
-            offscreenDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-            offscreenDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
-            offscreenDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(0.1, 0.1, 0.1, 1.0));
-            offscreenDescriptor->depthAttachment()->setTexture(_offscreenDepthTexture);
-            offscreenDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-            offscreenDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-            offscreenDescriptor->depthAttachment()->setClearDepth(1.0);
 
-            MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(offscreenDescriptor);
-            encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
-            encoder->setCullMode(MTL::CullModeBack);
-            encoder->setLabel(NS::String::string("Offscreen", NS::ASCIIStringEncoding));
-            encoder->setRenderPipelineState(metalRenderPSO);
-            encoder->setDepthStencilState(depthStencilState);
-            encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
-            encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-            encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-            skybox.Draw(encoder);
-            encoder->endEncoding();
-            offscreenDescriptor->release();
+        MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+        MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
+        MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
 
-           
+        depthAttachment->setTexture(depthTexture);
+        depthAttachment->setLoadAction(MTL::LoadActionClear);
+        depthAttachment->setStoreAction(MTL::StoreActionDontCare);
+        depthAttachment->setClearDepth(1.0);
+        cd->setTexture(surface->texture());
+        cd->setLoadAction(MTL::LoadActionClear);
+        cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
+        cd->setStoreAction(MTL::StoreActionStore);
+
+
+        MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
+        // encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+        // encoder->setCullMode(MTL::CullModeBack);
+        encoder->setLabel(NS::String::string("RenderPass", NS::ASCIIStringEncoding));
+        encoder->setRenderPipelineState(RenderPassPSO);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)6);
+
+       
+
+
+        encoder->endEncoding();
+
+
+        renderPassDescriptor->release();
         });
+
         multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
-         MTL4::RenderPassDescriptor *surfaceDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
-            surfaceDescriptor->colorAttachments()->object(0)->setTexture(surface->texture());
-            surfaceDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-            surfaceDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
-            surfaceDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+        OffScreenRenderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setTexture(_renderTexture);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(0.1, 0.1, 0.1, 1.0));
+        OffScreenRenderPassDescriptor->depthAttachment()->setTexture(_offscreenDepthTexture);
+        OffScreenRenderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+        OffScreenRenderPassDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+        OffScreenRenderPassDescriptor->depthAttachment()->setClearDepth(1.0);
 
-            MTL4::RenderCommandEncoder * encoder = cb->renderCommandEncoder(surfaceDescriptor);
-            encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
-            encoder->setCullMode(MTL::CullModeBack);
-            encoder->setLabel(NS::String::string("RenderPass", NS::ASCIIStringEncoding));
-            encoder->setRenderPipelineState(RenderPassPSO);
-            encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
-            encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-            encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)6);
-            encoder->endEncoding();
-            surfaceDescriptor->release();
-            });
+        MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(OffScreenRenderPassDescriptor);
+        encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+        encoder->setCullMode(MTL::CullModeBack);
+        encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
+        encoder->setRenderPipelineState(metalRenderPSO);
+        encoder->setDepthStencilState(depthStencilState);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+        skybox.Draw(encoder);
 
-        
+        encoder->endEncoding();
+        OffScreenRenderPassDescriptor->release();
+
+        });
+
+
         metal4CommandQueue->wait(surface);
         multiCommandBuffer.Execute(cmd_alloc, metalLayerHandle, metal4CommandQueue);
         metal4CommandQueue->signalDrawable(surface);
@@ -456,10 +468,8 @@ void MTLEngine::init()
 
         if (glfwGetKey(glfwWindow, GLFW_KEY_M) == GLFW_PRESS) glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
-
     void MTLEngine::mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     {
-
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE){
             int width, height;
             glfwGetWindowSize(window, &width, &height);
@@ -470,9 +480,6 @@ void MTLEngine::init()
         }
 
     }
-
-
-
     void MTLEngine::frameBufferSizeCallback(GLFWwindow *window, int width, int height){
 
         if(MTLEngine::engine){
@@ -498,6 +505,7 @@ void MTLEngine::init()
         TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
         depthTexture = metalDevice->newTexture(TextureDescriptor);
         TextureDescriptor->release();
+
     }
 
 
