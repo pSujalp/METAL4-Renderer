@@ -63,6 +63,9 @@ void MTLEngine::cleanup()
         shaderLibrary->release();
     if (triangleVertexBuffer)
         triangleVertexBuffer->release();
+    if(_offscreenDepthTexture) _offscreenDepthTexture->release();
+    if(_renderTexture) _renderTexture->release();
+    if(OffScreenRenderPassDescriptor) OffScreenRenderPassDescriptor->release();
 }
 
 void MTLEngine::initDevice()
@@ -125,6 +128,16 @@ void MTLEngine::createTriangle()
     triangleVertexBuffer->setLabel(NS::String::string("Triangle Vertex Buffer", NS::ASCIIStringEncoding));
     grassTexture = new Texture("assets/mc_grass.jpeg", metalDevice);
     transformationBuffer = metalDevice->newBuffer(sizeof(MVP), MTL::ResourceStorageModeShared);
+    static const AAPLVertex quadVertices[] = {
+            {{-1.0, -1.0}, {0.0, 0.0, 0.0, 1.0}, {0.0, 1.0}},
+            {{ 1.0, -1.0}, {1.0, 0.0, 0.0, 1.0}, {1.0, 1.0}},
+            {{ 1.0,  1.0}, {1.0, 1.0, 0.0, 1.0}, {1.0, 0.0}},
+            {{ 1.0,  1.0}, {1.0, 1.0, 0.0, 1.0}, {1.0, 0.0}},
+            {{-1.0,  1.0}, {0.0, 1.0, 0.0, 1.0}, {0.0, 0.0}},
+            {{-1.0, -1.0}, {0.0, 0.0, 0.0, 1.0}, {0.0, 1.0}},
+        };
+
+    OffScreenVertexBuffer = metalDevice->newBuffer(&quadVertices,sizeof(AAPLVertex),MTL::ResourceStorageModeShared);
 }
 
 void MTLEngine::createSkybox()
@@ -179,8 +192,11 @@ void MTLEngine::createCommandQueue()
 
     arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
     arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
+    arg_table->setAddress(OffScreenVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::AAPL_Vertex_DATA));
     MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
     arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::COLTEXTURE_ID);
+    r_ID = _renderTexture->gpuResourceID();
+    arg_table->setTexture(r_ID, (NS::UInteger)TEX_INDEX::AAPL_TEX_ID);
 
 
     auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
@@ -189,7 +205,7 @@ void MTLEngine::createCommandQueue()
     residency_set->addAllocation(triangleVertexBuffer);
     residency_set->addAllocation(transformationBuffer);
     residency_set->addAllocation(grassTexture->texture);
-
+    residency_set->addAllocation(_renderTexture);
     skybox.UpdateResidency(residency_set);
 
 
@@ -246,13 +262,65 @@ void MTLEngine::createRenderPipeline()
 
     
     skybox.UpdateShaders(shaderLibrary,_mainDeletionQueue,metal4Compiler,pixelFormat);
-
     MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
     depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
     depthStencilDescriptor->setDepthWriteEnabled(true);
     depthStencilState = metalDevice->newDepthStencilState(depthStencilDescriptor);
     depthStencilDescriptor->release();
 
+
+    MTL::TextureDescriptor* colorDesc = MTL::TextureDescriptor::alloc()->init();
+    colorDesc->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    colorDesc->setWidth(512);
+    colorDesc->setHeight(512);
+    colorDesc->setStorageMode(MTL::StorageModeShared);
+    colorDesc->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
+    _renderTexture = metalDevice->newTexture(colorDesc);
+    colorDesc->release();
+
+    
+    MTL::TextureDescriptor* depthDesc = MTL::TextureDescriptor::alloc()->init();
+    depthDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
+    depthDesc->setWidth(512);
+    depthDesc->setHeight(512);
+    depthDesc->setStorageMode(MTL::StorageModePrivate);
+    depthDesc->setUsage(MTL::TextureUsageRenderTarget);
+    _offscreenDepthTexture = metalDevice->newTexture(depthDesc);
+    depthDesc->release();
+
+    OffScreenRenderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+    OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setTexture(_renderTexture);
+    OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+    OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+    OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(0.1, 0.1, 0.1, 1.0));
+    OffScreenRenderPassDescriptor->depthAttachment()->setTexture(_offscreenDepthTexture);
+    OffScreenRenderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+    OffScreenRenderPassDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+    OffScreenRenderPassDescriptor->depthAttachment()->setClearDepth(1.0);
+
+    ShaderFunctionDescriptor OffScreenRenderPasssShaderFunctionDescriptor(shaderLibrary, "vertexRenderPass", "fragmentvertexRenderPass");
+
+    auto * OffScreenPipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
+    OffScreenPipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
+    OffScreenPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
+    OffScreenPipelineDescriptor->setVertexFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
+    OffScreenPipelineDescriptor->setFragmentFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
+    pPipelineError = nullptr;
+    
+    RenderPassPSO = metal4Compiler->newRenderPipelineState(OffScreenPipelineDescriptor, (MTL4::CompilerTaskOptions *)nullptr, &pPipelineError);
+    if (!RenderPassPSO)
+    {
+        if (pPipelineError)
+        {
+            std::cerr << "Pipeline compile error: " << pPipelineError->localizedDescription()->utf8String() << std::endl;
+        }
+        else
+        {
+            std::cerr << "newRenderPipelineState() returned null (no error object provided).\n";
+        }
+        exit(EXIT_FAILURE);
+    }
+    OffScreenPipelineDescriptor->release();
     cubePipelineDescriptor->release();
 }
 
@@ -327,7 +395,7 @@ void MTLEngine::sendRenderCommand()
     MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
     MTL::RenderPassColorAttachmentDescriptor *cd = renderPassDescriptor->colorAttachments()->object(0);
     MTL::RenderPassDepthAttachmentDescriptor *depthAttachment = renderPassDescriptor->depthAttachment();
-    
+
     depthAttachment->setTexture(depthTexture);
     depthAttachment->setLoadAction(MTL::LoadActionClear);
     depthAttachment->setStoreAction(MTL::StoreActionDontCare);
@@ -339,6 +407,21 @@ void MTLEngine::sendRenderCommand()
 
 
     MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(renderPassDescriptor);
+    // encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+    // encoder->setCullMode(MTL::CullModeBack);
+    encoder->setLabel(NS::String::string("RenderPass", NS::ASCIIStringEncoding));
+    encoder->setRenderPipelineState(RenderPassPSO);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+    encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+
+
+    encoder->endEncoding();
+    renderPassDescriptor->release();
+    });
+
+    multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
+    MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(OffScreenRenderPassDescriptor);
     encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
     encoder->setCullMode(MTL::CullModeBack);
     encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
@@ -347,16 +430,8 @@ void MTLEngine::sendRenderCommand()
     encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
     encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
     encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-
-
-    
     skybox.Draw(encoder);
-
-
     encoder->endEncoding();
-
-
-    renderPassDescriptor->release();
     });
 
     

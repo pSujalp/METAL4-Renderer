@@ -104,9 +104,13 @@ private:
 
 
     static MTLEngine* engine;
-
     Skybox skybox;
-    
+
+    MTL4::RenderPassDescriptor *OffScreenRenderPassDescriptor;
+    MTL::Texture * _renderTexture;
+    MTL::Texture * _offscreenDepthTexture;
+    MTL::RenderPipelineState * RenderPassPSO;
+    MTL::Buffer * OffScreenVertexBuffer;
 
 
     Camera  camera;

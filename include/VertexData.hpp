@@ -14,12 +14,14 @@ struct VertexData
 enum class BUFFER_INDEX : uint8_t
 {
     VERTEX_DATA,
-    Transformation_DATA
+    Transformation_DATA,
+    AAPL_Vertex_DATA
 };
 
 enum class TEX_INDEX : uint8_t
 {
-    COLTEXTURE_ID
+    COLTEXTURE_ID,
+    AAPL_TEX_ID
 };
 
 struct MVP
@@ -33,3 +35,10 @@ struct Uniforms
     int intAsBool;
 };
 
+
+struct AAPLVertex {
+    float2 position;
+    float4 color;
+    float2 textureCoordinate;
+   
+};
