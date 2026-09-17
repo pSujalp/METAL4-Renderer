@@ -53,3 +53,15 @@ struct UV{
     float U;
     float V;
 };
+
+
+struct Mesh_Vertices{
+
+    Vertex position;
+    Vertex normal;
+    Vertex indices;
+    Vertex tangent;
+    Vertex bitangent;
+    UV uv;
+
+};

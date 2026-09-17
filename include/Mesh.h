@@ -9,6 +9,7 @@
 
 #include <vector>
 #include "Material.hpp"
+#include "VertexData.hpp"
 
 class Mesh{
 
@@ -18,24 +19,17 @@ class Mesh{
     void Draw();
 
 
-    Mesh(const std::vector<Vertex>& position,
-    const std::vector<Vertex>& normal,
-    const std::vector<Vertex>& indices,
-    const std::vector<Vertex>& tangent,
-    const std::vector<Vertex>& bitangent,
-    const std::vector<UV> &uv,MTL::Device * metalDevice,
-    const std::string &material);
+    Mesh(std::vector<Mesh_Vertices> &meshv ,const std::string &material_name, const std::vector<uint32_t> &indices,MTL::Device * metalDevice);
 
     public:
 
     MTL::Device* device;
-    MTL::Buffer* vertexBuffer;
-    MTL::Buffer* indexBuffer;
-    MTL::Buffer * uvBuffer;
-    MTL::Buffer * tanBuffer;
-    MTL::Buffer * bitangetBuffer;
+    MTL::Buffer* Mesh_Data;
+
+
+    MTL::Buffer* index_Data;
     unsigned long indexCount;
-    std::string material;
+    std::string material_name;
     MTL::Device * metalDevice;
 
 

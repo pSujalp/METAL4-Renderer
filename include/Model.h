@@ -7,6 +7,7 @@
 #include "ufbx.h"
 #include "Texture.hpp"
 #include "stb_image.h"
+#include <cstring>
 
 
 class Model{
