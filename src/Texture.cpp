@@ -24,6 +24,26 @@ Texture::Texture(const char* filepath, MTL::Device* metalDevice) {
     stbi_image_free(image);
 }
 
+Texture::Texture(stbi_uc * data, unsigned long len,MTL::Device* metalDevice) {
+    device = metalDevice;
+
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* image = stbi_load_from_memory(data, len ,&width, &height, &channels, STBI_rgb_alpha);
+    assert(image != NULL);
+    MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
+    desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    desc->setWidth(width);
+    desc->setHeight(height);
+    desc->setUsage(MTL::TextureUsageShaderRead);
+    desc->setStorageMode(MTL::StorageModeShared);
+    desc->setMipmapLevelCount((NS::UInteger) 8);
+
+    texture = device->newTexture(desc);
+    texture->replaceRegion(MTL::Region(0, 0, 0, width, height, 1), 0, image, 4 * width);
+    desc->release();
+    stbi_image_free(image);
+}
+
 Texture::~Texture() {
     texture->release();
 }

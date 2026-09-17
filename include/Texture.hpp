@@ -8,6 +8,7 @@ class Texture
 {
 public:
     Texture(const char *filepath, MTL::Device *metalDevice);
+    Texture(stbi_uc * data, unsigned long len,MTL::Device *metalDevice);
     ~Texture();
     MTL::Texture *texture;
     int width, height, channels;

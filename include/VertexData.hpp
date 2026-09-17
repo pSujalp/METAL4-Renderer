@@ -41,3 +41,15 @@ struct AAPLVertex {
     float2 textureCoordinate;
    
 };
+
+
+struct Vertex{
+    float x;
+    float y;
+    float z;
+};
+
+struct UV{
+    float U;
+    float V;
+};
