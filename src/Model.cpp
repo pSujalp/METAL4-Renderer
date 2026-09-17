@@ -25,10 +25,10 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice)
             {
                 material = mesh->materials.data[part.index];
                 const ufbx_material_list materiallist = mesh->materials;
-                printf("size of material list --- >%zu \n", materiallist.count);
                 for (const auto &mat : materiallist)
                 {
-                    if(PBRmaterials_map.contains(mat->name.data)) continue;
+                    if(PBRmaterials_map.find(mat->name.data) != PBRmaterials_map.end()) continue;
+
                     const ufbx_material_texture_list materiallist_textures = mat->textures;
                     PBRMaterial pbrmat;
                     for (const auto &tex : materiallist_textures)
@@ -38,13 +38,13 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice)
                             Texture *texture = new Texture((stbi_uc *)tex.texture->content.data, tex.texture->content.size, metalDevice);
                             if (strcmp(tex.texture->element.name.data, "base_color_texture") == 0)
                                 pbrmat.base_color_texture = texture->texture;
-                            else if (strcmp(tex.texture->element.name.data, "normalmap_texture") == 0)
+                            if (strcmp(tex.texture->element.name.data, "normalmap_texture") == 0)
                                 pbrmat.normalmap_texture = texture->texture;
-                            else if (strcmp(tex.texture->element.name.data, "metallic_texture") == 0)
+                            if (strcmp(tex.texture->element.name.data, "metallic_texture") == 0)
                                 pbrmat.metallic_texture = texture->texture;
-                            else if (strcmp(tex.texture->element.name.data, "roughness_texture") == 0)
+                            if (strcmp(tex.texture->element.name.data, "roughness_texture") == 0)
                                 pbrmat.roughness_texture = texture->texture;
-                            else if (strcmp(tex.texture->element.name.data, "specular_texture") == 0)
+                            if (strcmp(tex.texture->element.name.data, "specular_texture") == 0)
                                 pbrmat.specular_texture = texture->texture;
                         }
                         PBRmaterials_map[mat->name.data] = std::move(pbrmat);

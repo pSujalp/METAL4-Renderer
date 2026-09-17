@@ -45,7 +45,7 @@ Texture::Texture(stbi_uc * data, unsigned long len,MTL::Device* metalDevice) {
 }
 
 Texture::~Texture() {
-    texture->release();
+    if(texture) texture->release();
 }
 
 
