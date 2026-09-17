@@ -25,6 +25,7 @@ void MTLEngine::init()
     createRenderPipeline();
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
+    model = new Model("assets/Backpack_embedded.fbx",metalDevice);
     engine = this;
 }
     void MTLEngine::createShaderLibrary()

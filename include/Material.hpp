@@ -17,4 +17,17 @@ struct PBRMaterial
     MTL::Texture * specular_texture;
 
 
+    ~PBRMaterial(){
+
+        if(base_color_texture) base_color_texture->release();
+
+        if(normalmap_texture) normalmap_texture->release();
+
+        if(metallic_texture) metallic_texture->release();
+
+        if(roughness_texture) roughness_texture->release();
+
+        if(specular_texture) specular_texture->release();
+    }
+
 };

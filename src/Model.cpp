@@ -1,43 +1,68 @@
 #include "Model.h"
+Model::Model(const std::string &filePath, MTL::Device *metalDevice)
+{
 
-
-Model::Model(const std::string & filePath, MTL::Device * metalDevice){
-
-    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), NULL, NULL);
-    assert(scene);
-
+    ufbx_load_opts opts = {};
+    ufbx_error error;
+    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), &opts, &error);
+    if (!scene)
+    {
+        fprintf(stderr, "ufbx load error: %s\n", error.description.data);
+        assert(scene);
+    }
 
     std::vector<uint32_t> tri_indices;
+    
 
     for (ufbx_mesh *mesh : scene->meshes)
     {
         tri_indices.resize(mesh->max_face_triangles * 3);
-        
+
         for (ufbx_mesh_part &part : mesh->material_parts)
         {
-
             ufbx_material *material = NULL;
             if (part.index < mesh->materials.count)
             {
                 material = mesh->materials.data[part.index];
-                const ufbx_material_texture_list textures = material->textures;
-                PBRMaterial pbrmat;
-                for (const auto &tex : textures)
+                const ufbx_material_list materiallist = mesh->materials;
+                printf("size of material list --- >%zu \n", materiallist.count);
+                for (const auto &mat : materiallist)
                 {
-                    if (tex.texture->content.data && tex.texture->content.size > 0){
-                        Texture * texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,  metalDevice); 
-                        if(strcmp(tex.texture->element.name.data , "base_color_texture")==0) pbrmat.base_color_texture = texture->texture;
-                        else if(strcmp(tex.texture->element.name.data , "normalmap_texture")==0) pbrmat.normalmap_texture = texture->texture;
-                        else if(strcmp(tex.texture->element.name.data , "metallic_texture")==0) pbrmat.metallic_texture = texture->texture;
-                        else if(strcmp(tex.texture->element.name.data , "roughness_texture")==0) pbrmat.roughness_texture = texture->texture;
-                        else if(strcmp(tex.texture->element.name.data , "specular_texture")==0) pbrmat.specular_texture = texture->texture;
+                    if(PBRmaterials_map.contains(mat->name.data)) continue;
+                    const ufbx_material_texture_list materiallist_textures = mat->textures;
+                    PBRMaterial pbrmat;
+                    for (const auto &tex : materiallist_textures)
+                    {
+                        if (tex.texture->content.data && tex.texture->content.size > 0)
+                        {
+                            Texture *texture = new Texture((stbi_uc *)tex.texture->content.data, tex.texture->content.size, metalDevice);
+                            if (strcmp(tex.texture->element.name.data, "base_color_texture") == 0)
+                                pbrmat.base_color_texture = texture->texture;
+                            else if (strcmp(tex.texture->element.name.data, "normalmap_texture") == 0)
+                                pbrmat.normalmap_texture = texture->texture;
+                            else if (strcmp(tex.texture->element.name.data, "metallic_texture") == 0)
+                                pbrmat.metallic_texture = texture->texture;
+                            else if (strcmp(tex.texture->element.name.data, "roughness_texture") == 0)
+                                pbrmat.roughness_texture = texture->texture;
+                            else if (strcmp(tex.texture->element.name.data, "specular_texture") == 0)
+                                pbrmat.specular_texture = texture->texture;
+                        }
+                        PBRmaterials_map[mat->name.data] = std::move(pbrmat);
                     }
                 }
-                PBRmaterials_map[material->name.data] = std::move(pbrmat);
+            }
+            else
+            {
+                continue;
             }
 
             std::vector<Mesh_Vertices> meshV;
             meshV.reserve(part.num_triangles * 3);
+
+            const bool hasNormal = mesh->vertex_normal.exists;
+            const bool hasTangent = mesh->vertex_tangent.exists;
+            const bool hasBitangent = mesh->vertex_bitangent.exists;
+            const bool hasUV = mesh->vertex_uv.exists;
 
             for (uint32_t face_index : part.face_indices)
             {
@@ -49,26 +74,31 @@ Model::Model(const std::string & filePath, MTL::Device * metalDevice){
                     uint32_t index = tri_indices[i];
                     Mesh_Vertices mv{};
 
-                    mv.position.x = mesh->vertex_position[index].x;
-                    mv.position.y = mesh->vertex_position[index].y;
-                    mv.position.z = mesh->vertex_position[index].z;
-                    
-                    mv.normal.x = mesh->vertex_normal[index].x;
-                    mv.normal.y = mesh->vertex_normal[index].y;
-                    mv.normal.z = mesh->vertex_normal[index].z;
-                    
-                    mv.tangent.x = mesh->vertex_tangent[index].x;
-                    mv.tangent.y = mesh->vertex_tangent[index].y;
-                    mv.tangent.z = mesh->vertex_tangent[index].z;
-        
-                    mv.bitangent.x = mesh->vertex_bitangent[index].x;
-                    mv.bitangent.y = mesh->vertex_bitangent[index].y;
-                    mv.bitangent.z = mesh->vertex_bitangent[index].z;
-                    
-                    mv.uv.U = mesh->vertex_uv[index].x;
-                    mv.uv.V = mesh->vertex_uv[index].y;
+                    ufbx_vec3 pos = mesh->vertex_position[index];
+                    mv.position = {(float)pos.x, (float)pos.y, (float)pos.z};
+
+                    if (hasNormal)
+                    {
+                        ufbx_vec3 n = mesh->vertex_normal[index];
+                        mv.normal = {(float)n.x, (float)n.y, (float)n.z};
+                    }
+                    if (hasTangent)
+                    {
+                        ufbx_vec3 t = mesh->vertex_tangent[index];
+                        mv.tangent = {(float)t.x, (float)t.y, (float)t.z};
+                    }
+                    if (hasBitangent)
+                    {
+                        ufbx_vec3 b = mesh->vertex_bitangent[index];
+                        mv.bitangent = {(float)b.x, (float)b.y, (float)b.z};
+                    }
+                    if (hasUV)
+                    {
+                        ufbx_vec2 uv = mesh->vertex_uv[index];
+                        mv.uv = {(float)uv.x, (float)uv.y};
+                    }
+
                     meshV.emplace_back(mv);
-    
                 }
             }
             ufbx_vertex_stream streams[1] = {
@@ -80,23 +110,10 @@ Model::Model(const std::string & filePath, MTL::Device * metalDevice){
                 streams, 1, indices.data(), indices.size(), nullptr, nullptr);
             meshV.resize(num_vertices);
 
-            Mesh * meshy = new Mesh(meshV,std::string(material->name.data),indices,metalDevice);
-
-            
-
-            
-            
-
-
-        
-            
+            Mesh *meshy = new Mesh(meshV, std::string(material->name.data), indices, metalDevice);
+            meshes.emplace_back(std::move(meshy));
         }
-
     }
 
-
-
-    
-
-
+    ufbx_free_scene(scene);
 }

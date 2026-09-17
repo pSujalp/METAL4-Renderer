@@ -34,6 +34,7 @@
 #include "SkyboxData.hpp"
 #include "Skybox.h"
 #include <string>
+#include "Model.h"
 
 
 
@@ -121,6 +122,8 @@ private:
     float lastY;
     bool firstMouse = true;
     bool rightMouseButtonPressed = false;
+
+    Model * model;
 
   
 };
