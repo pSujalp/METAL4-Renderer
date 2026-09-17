@@ -25,8 +25,6 @@ class Mesh{
 
     MTL::Device* device;
     MTL::Buffer* Mesh_Data;
-
-
     MTL::Buffer* index_Data;
     unsigned long indexCount;
     std::string material_name;
