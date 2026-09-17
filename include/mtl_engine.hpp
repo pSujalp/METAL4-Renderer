@@ -34,6 +34,7 @@
 #include "SkyboxData.hpp"
 #include "Skybox.h"
 #include <string>
+#include "model.hpp"
 
 
 
@@ -112,6 +113,9 @@ private:
     MTL::Texture * _offscreenDepthTexture;
     MTL::RenderPipelineState * RenderPassPSO;
     MTL::Buffer * OffScreenVertexBuffer;
+
+
+    Model * model;
 
 
     Camera  camera;

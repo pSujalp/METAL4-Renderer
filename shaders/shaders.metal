@@ -32,25 +32,15 @@ vertex AAPLOut vertexRenderPass(uint vertexID [[vertex_id]],
     return out;
 }
 
-
 fragment float4 fragmentRenderPass(AAPLOut in [[stage_in]],
-                                      texture2d<float> sceneColor [[texture(TEX_INDEX::AAPL_TEX_ID)]])
-{
-    constexpr sampler pointSampler(mag_filter::nearest, min_filter::nearest);
+                                   texture2d<float> colorTexture [[texture(TEX_INDEX::AAPL_TEX_ID)]]) {
+    constexpr sampler textureSampler(mag_filter::linear, min_filter::linear);
+            
+    float4 result = colorTexture.sample(textureSampler, in.textureCoordinate);
 
-    float2 texel = 1.0 / float2(sceneColor.get_width(), sceneColor.get_height());
-    float2 p = in.textureCoordinate;
-
-    float3 cL = sceneColor.sample(pointSampler, p + float2(-texel.x, 0)).rgb;
-    float3 cR = sceneColor.sample(pointSampler, p + float2( texel.x, 0)).rgb;
-    float3 cU = sceneColor.sample(pointSampler, p + float2(0, -texel.y)).rgb;
-    float3 cD = sceneColor.sample(pointSampler, p + float2(0,  texel.y)).rgb;
-
-    float lumaDiff = length(cL - cR) + length(cU - cD);
-    float edge = smoothstep(0.08, 0.09, lumaDiff);
-
-    float3 base = sceneColor.sample(pointSampler, p).rgb;
-    return float4(mix(base, float3(0.0), edge), 1.0);
+    float gamma = 2.2f;
+    result.rgb = pow(result.rgb, float3(1.0f/gamma));   
+    return  result ;
 }
 
 vertex VertexOut vertexShader(uint vertexID [[vertex_id]],

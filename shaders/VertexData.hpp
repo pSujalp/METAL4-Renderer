@@ -41,3 +41,4 @@ struct AAPLVertex
     float2 textureCoordinate;
 };
 
+

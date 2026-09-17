@@ -26,6 +26,8 @@ void MTLEngine::init()
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
     engine = this;
+
+    model = new Model("assets/SMG/smg.obj", metalDevice);
 }
     void MTLEngine::createShaderLibrary()
     {
