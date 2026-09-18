@@ -134,9 +134,7 @@ void Model::UpdateResidency(MTL::ResidencySet *residency_set)
 
 void Model::Draw(MTL4::RenderCommandEncoder *encoder, MESHMVP & mvp)
 {
-
     for (auto const &i : meshes){
-
         i->Draw(encoder, PBRmaterials_map[i->material_name],mvp);
     }
 }
