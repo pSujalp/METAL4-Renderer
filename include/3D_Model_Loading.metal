@@ -22,11 +22,10 @@ vertex VertexOut modelVertexShader(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment float4 modelFragmentShader(VertexOut in [[stage_in]],
-                                   constant PBRMaterial * pbr_mat [[buffer(MESH_MAT_INDEX::PBR_MAT)]]) {
+fragment float4 modelFragmentShader(VertexOut in [[stage_in]]) {
                                     
-    constexpr sampler textureSampler (mag_filter::linear,
-                                      min_filter::linear);
-    const float4 colorSample = pbr_mat->base_color_texture.sample(textureSampler, in.uv);
-    return colorSample;
+    // constexpr sampler textureSampler (mag_filter::linear,
+    //                                   min_filter::linear);
+    // const float4 colorSample = pbr_mat->base_color_texture.sample(textureSampler, in.uv);
+    return float4(1.0f,0.0f,0.0f,1.0f);
 }

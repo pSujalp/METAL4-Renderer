@@ -10,7 +10,7 @@ Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
 
     Mesh_Data = metalDevice->newBuffer(meshv.data(), sizeof(Mesh_Vertices) * meshv.size(), MTL::StorageModeShared);
     material_Data = metalDevice->newBuffer(sizeof(PBRMaterial), MTL::StorageModeShared);
-    index_Data = metalDevice->newBuffer(indices.data(), sizeof(uint32_t) * this->indexCount, MTL::StorageModeShared);
+    index_Data = metalDevice->newBuffer(indices.data(), sizeof(uint32_t) * indices.size(), MTL::StorageModeShared);
     MVP_Data = metalDevice->newBuffer(sizeof(MESHMVP), MTL::StorageModeShared);
 
     if (!Mesh_Data || !material_Data || !index_Data || !MVP_Data)
@@ -37,7 +37,6 @@ Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
     }
 
     Mesharg_table->setAddress(Mesh_Data->gpuAddress(), (NS::UInteger)(MESH_BUFFER_INDEX::MESH_VERTEX_DATA));
-    Mesharg_table->setAddress(material_Data->gpuAddress(), (NS::UInteger)(MESH_BUFFER_INDEX::PBR_MAT));
     Mesharg_table->setAddress(MVP_Data->gpuAddress(), (NS::UInteger)(MESH_BUFFER_INDEX::MVP_DATA));
 
     dq.push_function([=]()
@@ -95,5 +94,5 @@ void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, PBRMaterial &pbr_mat, MESHM
     encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
     encoder->drawIndexedPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, indexCount,
                                    MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
-                                   sizeof(uint32_t) * this->indexCount);
+                                   0);
 }

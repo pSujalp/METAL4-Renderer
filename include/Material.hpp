@@ -56,7 +56,6 @@ struct PBRMaterial {
 enum class MESH_BUFFER_INDEX : uint8_t {
     MESH_VERTEX_DATA = 0,
     MVP_DATA = 1,
-    PBR_MAT = 0,
 };
 
 
