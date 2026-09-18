@@ -1,5 +1,5 @@
 #include "Model.h"
-Model::Model(const std::string &filePath, MTL::Device *metalDevice)
+Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueue &dq)
 {
 
     ufbx_load_opts opts = {};
@@ -110,7 +110,7 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice)
                 streams, 1, indices.data(), indices.size(), nullptr, nullptr);
             meshV.resize(num_vertices);
 
-            Mesh *meshy = new Mesh(meshV, std::string(material->name.data), indices, metalDevice);
+            Mesh *meshy = new Mesh(meshV, std::string(material->name.data), indices, metalDevice, dq);
             meshes.emplace_back(std::move(meshy));
         }
     }

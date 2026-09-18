@@ -9,7 +9,7 @@
 #include "stb_image.h"
 #include <cstring>
 
-
+#include "DeletionQueue.h"
 
 class Model{
     public:
@@ -17,6 +17,6 @@ class Model{
     std::unordered_map<std::string,PBRMaterial> PBRmaterials_map;
 
     Model() = default;
-    Model(const std::string & filePath,MTL::Device*metalDevice);
+    Model(const std::string & filePath,MTL::Device*metalDevice, DeletionQueue &dq );
 
 };

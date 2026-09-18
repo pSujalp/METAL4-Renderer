@@ -83,6 +83,8 @@ public:
         residency_set->addAllocation(this->MVPSkyBoxBuffer);
         residency_set->addAllocation(this->skyboxTexture->texture);
     }
+
+    
     void Draw(MTL4::RenderCommandEncoder *encoder)
     {
         encoder->setRenderPipelineState(SkyboxPSO);

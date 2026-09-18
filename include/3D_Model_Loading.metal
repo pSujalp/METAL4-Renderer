@@ -15,7 +15,7 @@ struct VertexOut{
 
 vertex VertexOut modelVertexShader(uint vertexID [[vertex_id]],
              constant Mesh_Vertices* vertexData[[buffer(MESH_BUFFER_INDEX::MESH_VERTEX_DATA)]],
-             constant MVP * mvp [[buffer(MESH_BUFFER_INDEX::MVP_DATA)]]) {
+             constant MESHMVP * mvp [[buffer(MESH_BUFFER_INDEX::MVP_DATA)]]) {
     VertexOut out;
     out.position = mvp->MVP  * float4(vertexData[vertexID].position.x, vertexData[vertexID].position.y, vertexData[vertexID].position.z , 1.0f) ;
     out.uv = float2(vertexData[vertexID].uv.U, vertexData[vertexID].uv.V);
@@ -23,10 +23,10 @@ vertex VertexOut modelVertexShader(uint vertexID [[vertex_id]],
 }
 
 fragment float4 modelFragmentShader(VertexOut in [[stage_in]],
-                                   texture2d<float> baseColorTexture [[texture(0)]]) {
+                                   constant PBRMaterial * pbr_mat [[buffer(MESH_MAT_INDEX::PBR_MAT)]]) {
                                     
     constexpr sampler textureSampler (mag_filter::linear,
                                       min_filter::linear);
-    const float4 colorSample = baseColorTexture.sample(textureSampler, in.uv);
+    const float4 colorSample = pbr_mat->base_color_texture.sample(textureSampler, in.uv);
     return colorSample;
 }

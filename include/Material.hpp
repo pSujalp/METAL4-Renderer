@@ -12,6 +12,10 @@ struct PBRMaterial {
     texture2d<float> specular_texture [[texture(4)]];
 };
 
+struct MESHMVP{
+    matrix_float4x4 MVP;
+};
+
 enum class MESH_BUFFER_INDEX : uint8_t {
     MESH_VERTEX_DATA = 0,
     MVP_DATA = 1,
@@ -20,6 +24,8 @@ enum class MESH_BUFFER_INDEX : uint8_t {
 enum class MESH_MAT_INDEX : uint8_t {
     PBR_MAT = 0,
 };
+
+
 
 #else
 
@@ -54,5 +60,9 @@ enum class MESH_BUFFER_INDEX : uint8_t {
 
 enum class MESH_MAT_INDEX : uint8_t {
     PBR_MAT = 0,
+};
+
+struct MESHMVP{
+    matrix_float4x4 MVP;
 };
 #endif

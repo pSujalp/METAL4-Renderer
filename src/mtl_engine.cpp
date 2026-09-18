@@ -25,7 +25,7 @@ void MTLEngine::init()
     createRenderPipeline();
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
-    model = new Model("assets/Backpack_embedded.fbx",metalDevice);
+    model = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
     engine = this;
 }
     void MTLEngine::createShaderLibrary()
@@ -204,6 +204,7 @@ void MTLEngine::init()
         residency_set->addAllocation(transformationBuffer);
         residency_set->addAllocation(grassTexture->texture);
         residency_set->addAllocation(_renderTexture);
+        
         skybox.UpdateResidency(residency_set);
 
 
