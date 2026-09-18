@@ -106,8 +106,11 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             };
             std::vector<uint32_t> indices;
             indices.resize(part.num_triangles * 3);
-            size_t num_vertices = ufbx_generate_indices(
-                streams, 1, indices.data(), indices.size(), nullptr, nullptr);
+            ufbx_error genErr;
+            size_t num_vertices = ufbx_generate_indices(streams, 1, indices.data(), indices.size(), nullptr, &genErr); 
+            if (num_vertices == 0) {
+            std::cerr << "ufbx_generate_indices failed: " << genErr.description.data << "\n";
+            }
             meshV.resize(num_vertices);
 
             Mesh *meshy = new Mesh(meshV, std::string(material->name.data), indices, metalDevice, dq);

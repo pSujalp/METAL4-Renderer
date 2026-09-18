@@ -91,8 +91,9 @@ void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, PBRMaterial &pbr_mat, MESHM
     encoder->setRenderPipelineState(MeshPSO);
     encoder->setDepthStencilState(MeshDepthStencilState);
     encoder->setArgumentTable(Mesharg_table, MTL::RenderStageVertex);
-    encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
+    // encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
+
     encoder->drawIndexedPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, indexCount,
-                                   MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
-                                   0);
+                               MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
+                               indexCount * sizeof(uint32_t));
 }
