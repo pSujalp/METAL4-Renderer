@@ -18,11 +18,13 @@ enum class BUFFER_INDEX : uint8_t
     AAPL_Vertex_DATA
 };
 
+
 enum class TEX_INDEX : uint8_t
 {
     COLTEXTURE_ID,
     AAPL_TEX_ID
 };
+
 
 struct MVP
 {

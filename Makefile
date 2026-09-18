@@ -12,7 +12,7 @@ CPPFLAGS := \
 	-I$(EXTERNAL)/stb \
 	-I$(EXTERNAL)/magic_enum \
 	-I$(EXTERNAL)/ \
-	-I./shaders \
+	-I./shaders/  \
 
 
 CXXFLAGS := -Wall -std=c++23 -O2 -fno-objc-arc
