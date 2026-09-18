@@ -13,6 +13,8 @@
 #include <iostream>
 #include "magic_enum/magic_enum.hpp"
 #include "DeletionQueue.h"
+#include "ShaderFunctionDescriptor.h"
+
 
 class Mesh{
 
@@ -24,6 +26,12 @@ class Mesh{
 
     Mesh(std::vector<Mesh_Vertices> &meshv ,const std::string &material_name,
          const std::vector<uint32_t> &indices,MTL::Device * metalDevice, DeletionQueue &dq);
+
+    void UpdateShaders(const MTL::Library *lib, DeletionQueue &dq, MTL4::Compiler *metal4Complier, const MTL::PixelFormat &pf);
+
+    void UpdateResidency(MTL::ResidencySet * residency_set);
+
+    void Draw(MTL4::RenderCommandEncoder *encoder,PBRMaterial &pbr_mat, MESHMVP & mvp);
 
     public:
 

@@ -12,7 +12,6 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
     }
 
     std::vector<uint32_t> tri_indices;
-    
 
     for (ufbx_mesh *mesh : scene->meshes)
     {
@@ -27,7 +26,8 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
                 const ufbx_material_list materiallist = mesh->materials;
                 for (const auto &mat : materiallist)
                 {
-                    if(PBRmaterials_map.find(mat->name.data) != PBRmaterials_map.end()) continue;
+                    if (PBRmaterials_map.find(mat->name.data) != PBRmaterials_map.end())
+                        continue;
 
                     const ufbx_material_texture_list materiallist_textures = mat->textures;
                     PBRMaterial pbrmat;
@@ -116,4 +116,27 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
     }
 
     ufbx_free_scene(scene);
+}
+
+void Model::UpdateShaders(const MTL::Library *lib, DeletionQueue &dq, MTL4::Compiler *metal4Complier, const MTL::PixelFormat &pf)
+{
+    for (auto const &i : meshes){
+        i->UpdateShaders(lib, dq, metal4Complier, pf);
+    }
+}
+
+void Model::UpdateResidency(MTL::ResidencySet *residency_set)
+{
+    for (auto const &i : meshes){
+        i->UpdateResidency(residency_set);
+    }
+}
+
+void Model::Draw(MTL4::RenderCommandEncoder *encoder, MESHMVP & mvp)
+{
+
+    for (auto const &i : meshes){
+
+        i->Draw(encoder, PBRmaterials_map[i->material_name],mvp);
+    }
 }
