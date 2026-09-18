@@ -11,7 +11,7 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
         assert(scene);
     }
 
-    std::vector<uint32_t> tri_indices;
+    std::vector<unsigned int> tri_indices;
 
     for (ufbx_mesh *mesh : scene->meshes)
     {
@@ -64,14 +64,14 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             const bool hasBitangent = mesh->vertex_bitangent.exists;
             const bool hasUV = mesh->vertex_uv.exists;
 
-            for (uint32_t face_index : part.face_indices)
+            for (size_t face_index : part.face_indices)
             {
                 ufbx_face face = mesh->faces[face_index];
-                uint32_t num_tris = ufbx_triangulate_face(
+                unsigned int num_tris = ufbx_triangulate_face(
                     tri_indices.data(), tri_indices.size(), mesh, face);
                 for (size_t i = 0; i < num_tris * 3; i++)
                 {
-                    uint32_t index = tri_indices[i];
+                    unsigned int index = tri_indices[i];
                     Mesh_Vertices mv{};
 
                     ufbx_vec3 pos = mesh->vertex_position[index];

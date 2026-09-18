@@ -20,7 +20,7 @@ void MTLEngine::init()
 
     createSkybox();  
     createTriangle();
-    model_3d = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
+    model_3d = new Model("assets/Backpack_embedded.fbx", metalDevice, _mainDeletionQueue);
 
 
     createRenderPipeline();
@@ -273,8 +273,8 @@ void MTLEngine::init()
 
         MTL::TextureDescriptor* colorDesc = MTL::TextureDescriptor::alloc()->init();
         colorDesc->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
-        colorDesc->setWidth(512);
-        colorDesc->setHeight(512);
+        colorDesc->setWidth((NS::UInteger)windowWidth);
+        colorDesc->setHeight((NS::UInteger)windowHeight);
         colorDesc->setStorageMode(MTL::StorageModeShared);
         colorDesc->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
         _renderTexture = metalDevice->newTexture(colorDesc);
@@ -283,8 +283,8 @@ void MTLEngine::init()
         
         MTL::TextureDescriptor* depthDesc = MTL::TextureDescriptor::alloc()->init();
         depthDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
-        depthDesc->setWidth(512);
-        depthDesc->setHeight(512);
+        depthDesc->setWidth((NS::UInteger)windowWidth);
+        depthDesc->setHeight((NS::UInteger)windowHeight);
         depthDesc->setStorageMode(MTL::StorageModePrivate);
         depthDesc->setUsage(MTL::TextureUsageRenderTarget);
         _offscreenDepthTexture = metalDevice->newTexture(depthDesc);
@@ -296,6 +296,7 @@ void MTLEngine::init()
         auto * OffScreenPipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init(); 
         OffScreenPipelineDescriptor->setLabel(NS::String::string("Triangle Rendering Pipeline (Metal 4)", NS::ASCIIStringEncoding));
         OffScreenPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
+        // OffScreenPipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float);
         OffScreenPipelineDescriptor->setVertexFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
         OffScreenPipelineDescriptor->setFragmentFunctionDescriptor(OffScreenRenderPasssShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
         pPipelineError = nullptr;
@@ -365,8 +366,8 @@ void MTLEngine::init()
         glm::mat4 viewMatrix = camera.GetViewMatrix();
         float aspectRatio = (float)windowWidth / (float)windowHeight;
         float fov = camera.Zoom;
-        float nearZ = 0.1f;
-        float farZ = 100.0f;
+        float nearZ = 0.01f;
+        float farZ = 1000.0f;
         glm::mat4 perspectiveMatrix = glm::perspective(fov, aspectRatio, nearZ, farZ);
         glm::mat4 MVP_GLM = perspectiveMatrix * viewMatrix * model;
 
@@ -382,6 +383,47 @@ void MTLEngine::init()
         CA::MetalLayer *metalLayerCpp = MetalViewBridge::AsMetalLayerCpp(metalLayerHandle);
 
 
+        // Pass 1: Offscreen — render 3D scene into _renderTexture
+        multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
+        OffScreenRenderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setTexture(_renderTexture);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
+        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(0.1, 0.1, 0.1, 1.0));
+        OffScreenRenderPassDescriptor->depthAttachment()->setTexture(_offscreenDepthTexture);
+        OffScreenRenderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+        OffScreenRenderPassDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
+        OffScreenRenderPassDescriptor->depthAttachment()->setClearDepth(1.0);
+
+
+        
+
+
+        MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(OffScreenRenderPassDescriptor);
+        encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+        encoder->setCullMode(MTL::CullModeBack);
+        encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
+        encoder->setRenderPipelineState(metalRenderPSO);
+        encoder->setDepthStencilState(depthStencilState);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
+        encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
+        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+
+
+
+        skybox.Draw(encoder);
+
+        MESHMVP Meshmvp;
+        Meshmvp.MVP = mvp1.MVP;
+
+        model_3d->Draw(encoder,Meshmvp);
+
+        encoder->endEncoding();
+        OffScreenRenderPassDescriptor->release();
+
+        });
+
+        // Pass 2: Blit — fullscreen quad samples _renderTexture → drawable surface
         multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
 
         MTL4::RenderPassDescriptor *renderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
@@ -408,38 +450,6 @@ void MTLEngine::init()
         encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)6);
         encoder->endEncoding();
         renderPassDescriptor->release();
-        });
-
-        multiCommandBuffer.pushback_function([=](MTL4::CommandBuffer * cb){
-        OffScreenRenderPassDescriptor = MTL4::RenderPassDescriptor::alloc()->init();
-        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setTexture(_renderTexture);
-        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setLoadAction(MTL::LoadActionClear);
-        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setStoreAction(MTL::StoreActionStore);
-        OffScreenRenderPassDescriptor->colorAttachments()->object(0)->setClearColor(MTL::ClearColor(0.1, 0.1, 0.1, 1.0));
-        OffScreenRenderPassDescriptor->depthAttachment()->setTexture(_offscreenDepthTexture);
-        OffScreenRenderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
-        OffScreenRenderPassDescriptor->depthAttachment()->setStoreAction(MTL::StoreActionDontCare);
-        OffScreenRenderPassDescriptor->depthAttachment()->setClearDepth(1.0);
-
-        MTL4::RenderCommandEncoder *encoder = cb->renderCommandEncoder(OffScreenRenderPassDescriptor);
-        encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
-        encoder->setCullMode(MTL::CullModeBack);
-        encoder->setLabel(NS::String::string("Triangle", NS::ASCIIStringEncoding));
-        encoder->setRenderPipelineState(metalRenderPSO);
-        encoder->setDepthStencilState(depthStencilState);
-        encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
-        encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
-        skybox.Draw(encoder);
-
-        MESHMVP Meshmvp;
-        Meshmvp.MVP = mvp1.MVP;
-
-        model_3d->Draw(encoder,Meshmvp);
-
-        encoder->endEncoding();
-        OffScreenRenderPassDescriptor->release();
-
         });
 
 
@@ -496,26 +506,60 @@ void MTLEngine::init()
 
     }
 
-
     void MTLEngine::resizeFrameBuffer(int width, int height){
+        if (width <= 0 || height <= 0)
+            return;
+
+        windowWidth = static_cast<float>(width);
+        windowHeight = static_cast<float>(height);
+        MetalViewBridge::ResizeLayer(metalLayerHandle, width, height);
 
         if (depthTexture) {
             depthTexture->release();
             depthTexture = nullptr;
         }
-        
 
         MTL::TextureDescriptor *TextureDescriptor = MTL::TextureDescriptor::alloc()->init();
         TextureDescriptor->setTextureType(MTL::TextureType2D);
         TextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
-        TextureDescriptor->setWidth((NS::UInteger)windowWidth);
-        TextureDescriptor->setHeight((NS::UInteger)windowHeight);
+        TextureDescriptor->setWidth((NS::UInteger)width);
+        TextureDescriptor->setHeight((NS::UInteger)height);
         TextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
         TextureDescriptor->setStorageMode(MTL::StorageModePrivate);
         depthTexture = metalDevice->newTexture(TextureDescriptor);
         TextureDescriptor->release();
 
+        if (!depthTexture)
+        {
+            std::cerr << "Failed to recreate depth texture after resize.\n";
+        }
 
+        if (_renderTexture) {
+            _renderTexture->release();
+            _renderTexture = nullptr;
+        }
+        if (_offscreenDepthTexture) {
+            _offscreenDepthTexture->release();
+            _offscreenDepthTexture = nullptr;
+        }
+
+        MTL::TextureDescriptor* renderTextureDesc = MTL::TextureDescriptor::alloc()->init();
+        renderTextureDesc->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+        renderTextureDesc->setWidth((NS::UInteger)width);
+        renderTextureDesc->setHeight((NS::UInteger)height);
+        renderTextureDesc->setStorageMode(MTL::StorageModeShared);
+        renderTextureDesc->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
+        _renderTexture = metalDevice->newTexture(renderTextureDesc);
+        renderTextureDesc->release();
+
+        MTL::TextureDescriptor* offscreenDepthDesc = MTL::TextureDescriptor::alloc()->init();
+        offscreenDepthDesc->setPixelFormat(MTL::PixelFormatDepth32Float);
+        offscreenDepthDesc->setWidth((NS::UInteger)width);
+        offscreenDepthDesc->setHeight((NS::UInteger)height);
+        offscreenDepthDesc->setStorageMode(MTL::StorageModePrivate);
+        offscreenDepthDesc->setUsage(MTL::TextureUsageRenderTarget);
+        _offscreenDepthTexture = metalDevice->newTexture(offscreenDepthDesc);
+        offscreenDepthDesc->release();
     }
 
 

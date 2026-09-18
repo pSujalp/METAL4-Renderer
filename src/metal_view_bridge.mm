@@ -17,6 +17,7 @@ void* CreateAndAttachLayer(GLFWwindow* glfwWindow, MTL::Device* device,
     layer.device = (__bridge id<MTLDevice>)device;
     layer.pixelFormat = (MTLPixelFormat)pixelFormat;
     layer.drawableSize = CGSizeMake(width, height);
+    
 
     nsWindow.contentView.layer = layer;
     nsWindow.contentView.wantsLayer = YES;

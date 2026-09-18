@@ -20,7 +20,7 @@ Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
     }
 
     MTL::DepthStencilDescriptor *depthDesc = MTL::DepthStencilDescriptor::alloc()->init();
-    depthDesc->setDepthCompareFunction(MTL::CompareFunctionLess);
+    depthDesc->setDepthCompareFunction(MTL::CompareFunctionLessEqual);
     depthDesc->setDepthWriteEnabled(true);
     MeshDepthStencilState = metalDevice->newDepthStencilState(depthDesc);
     depthDesc->release();
@@ -56,6 +56,8 @@ void Mesh::UpdateShaders(const MTL::Library *lib, DeletionQueue &dq, MTL4::Compi
     auto *ModePipelineDescriptor = MTL4::RenderPipelineDescriptor::alloc()->init();
     ModePipelineDescriptor->setLabel(NS::String::string("Model", NS::ASCIIStringEncoding));
     ModePipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pf);
+
+    
     ModePipelineDescriptor->setVertexFunctionDescriptor(modelShaderFunctionDescriptor.vertexShaderFunctionDescriptor);
     ModePipelineDescriptor->setFragmentFunctionDescriptor(modelShaderFunctionDescriptor.fragmentShaderFunctionDescriptor);
     NS::Error *pPipelineError = nullptr;
@@ -85,15 +87,26 @@ void Mesh::UpdateResidency(MTL::ResidencySet *residency_set)
 
 void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, PBRMaterial &pbr_mat, MESHMVP &mvp)
 {
-    memcpy(material_Data->contents(), &pbr_mat, sizeof(PBRMaterial));
+    // Bind textures into the argument table
+    if (pbr_mat.base_color_texture)
+        Mesharg_table->setTexture(pbr_mat.base_color_texture->gpuResourceID(), 0);
+    if (pbr_mat.normalmap_texture)
+        Mesharg_table->setTexture(pbr_mat.normalmap_texture->gpuResourceID(), 1);
+    if (pbr_mat.metallic_texture)
+        Mesharg_table->setTexture(pbr_mat.metallic_texture->gpuResourceID(), 2);
+    if (pbr_mat.roughness_texture)
+        Mesharg_table->setTexture(pbr_mat.roughness_texture->gpuResourceID(), 3);
+    if (pbr_mat.specular_texture)
+        Mesharg_table->setTexture(pbr_mat.specular_texture->gpuResourceID(), 4);
+
     memcpy(MVP_Data->contents(), &mvp, sizeof(MESHMVP));
 
     encoder->setRenderPipelineState(MeshPSO);
     encoder->setDepthStencilState(MeshDepthStencilState);
     encoder->setArgumentTable(Mesharg_table, MTL::RenderStageVertex);
-    // encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
+    encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
 
-    encoder->drawIndexedPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, indexCount,
+    encoder->drawIndexedPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, (NS::UInteger)indexCount,
                                MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
-                               indexCount * sizeof(uint32_t));
+                               index_Data->length());
 }
