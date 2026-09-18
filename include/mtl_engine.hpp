@@ -35,7 +35,7 @@
 #include "Skybox.h"
 #include <string>
 
-
+#include "Model.h"
 
 
 class MTLEngine {
@@ -121,6 +121,8 @@ private:
     float lastY;
     bool firstMouse = true;
     bool rightMouseButtonPressed = false;
+
+    Model * model3d;
 
   
 };

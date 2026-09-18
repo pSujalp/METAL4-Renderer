@@ -20,12 +20,15 @@ void MTLEngine::init()
 
     createSkybox();  
     createTriangle();
+    model3d = new Model("assets/Backpack_embedded1.fbx",metalDevice);
 
 
     createRenderPipeline();
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
     engine = this;
+
+    
 }
     void MTLEngine::createShaderLibrary()
     {
@@ -424,8 +427,24 @@ void MTLEngine::init()
         encoder->setDepthStencilState(depthStencilState);
         encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
         encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+
+        for(const auto &i:model3d->meshes){
+
+            memcpy(triangleVertexBuffer->contents(), i->vertices.data(), sizeof(VertexData));
+
+            encoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, MTL::IndexTypeUInt32, 
+                i->indexBufferData->gpuAddress(),  );
+
+
+
+
+        }
+
+
+        
         skybox.Draw(encoder);
+
+
         encoder->endEncoding();
         OffScreenRenderPassDescriptor->release();
 
