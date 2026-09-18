@@ -20,12 +20,13 @@ void MTLEngine::init()
 
     createSkybox();  
     createTriangle();
+    model_3d = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
 
 
     createRenderPipeline();
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
-    model_3d = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
+    
     engine = this;
 }
     void MTLEngine::createShaderLibrary()
