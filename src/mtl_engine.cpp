@@ -25,7 +25,7 @@ void MTLEngine::init()
     createRenderPipeline();
     createCommandQueue();     
     camera = Camera(glm::vec3(0,0,10.0f));
-    model = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
+    model_3d = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
     engine = this;
 }
     void MTLEngine::createShaderLibrary()
@@ -207,6 +207,8 @@ void MTLEngine::init()
         
         skybox.UpdateResidency(residency_set);
 
+        model_3d->UpdateResidency(residency_set);
+
 
         residency_set->commit();
         metal4CommandQueue->addResidencySet(residency_set);
@@ -259,7 +261,7 @@ void MTLEngine::init()
             exit(EXIT_FAILURE);
         }
 
-        
+        model_3d->UpdateShaders(shaderLibrary,_mainDeletionQueue,metal4Compiler,pixelFormat);
         skybox.UpdateShaders(shaderLibrary,_mainDeletionQueue,metal4Compiler,pixelFormat);
         MTL::DepthStencilDescriptor *depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
         depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLess);
@@ -428,6 +430,12 @@ void MTLEngine::init()
         encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
         encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
         skybox.Draw(encoder);
+
+        MESHMVP Meshmvp;
+        Meshmvp.MVP = mvp1.MVP;
+
+        model_3d->Draw(encoder,Meshmvp);
+
         encoder->endEncoding();
         OffScreenRenderPassDescriptor->release();
 

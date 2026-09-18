@@ -123,7 +123,7 @@ private:
     bool firstMouse = true;
     bool rightMouseButtonPressed = false;
 
-    Model * model;
+    Model * model_3d;
 
   
 };
