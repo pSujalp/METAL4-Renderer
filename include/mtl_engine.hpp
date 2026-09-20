@@ -36,6 +36,8 @@
 #include <string>
 #include "Model.h"
 
+#include "Sphere.h"
+
 
 
 
@@ -99,6 +101,8 @@ private:
 
     float windowHeight, windowWidth;
     MTL::Buffer * transformationBuffer;
+    MTL::Buffer * SphereVertexBuffer;
+    MTL::Buffer * SphereIndexedBuffer;
     
     DeletionQueue _mainDeletionQueue;
 
@@ -124,6 +128,7 @@ private:
     bool rightMouseButtonPressed = false;
 
     Model * model_3d;
+    Sphere * sphere;
 
   
 };

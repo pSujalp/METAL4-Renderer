@@ -17,8 +17,8 @@ vertex VertexOut modelVertexShader(uint vertexID [[vertex_id]],
              constant Mesh_Vertices* vertexData[[buffer(MESH_BUFFER_INDEX::MESH_VERTEX_DATA)]],
              constant MESHMVP * mvp [[buffer(MESH_BUFFER_INDEX::MVP_DATA)]]) {
     VertexOut out;
-    out.position = mvp->MVP  * float4(vertexData[vertexID].position.x, vertexData[vertexID].position.y, vertexData[vertexID].position.z , 1.0f) ;
-    out.uv = float2(vertexData[vertexID].uv.U, vertexData[vertexID].uv.V);
+    out.position = mvp->MVP  * float4(vertexData[vertexID].position , 1.0f) ;
+    out.uv = vertexData[vertexID].uv;
     return out;
 }
 

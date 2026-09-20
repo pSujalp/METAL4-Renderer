@@ -45,22 +45,13 @@ struct AAPLVertex {
 };
 
 
-struct Vertex{
-    float x;
-    float y;
-    float z;
-};
 
-struct UV{
-    float U;
-    float V;
-};
 
 
 struct Mesh_Vertices{
-    Vertex position;
-    Vertex normal;
-    Vertex tangent;
-    Vertex bitangent;
-    UV uv;
+    float3 position;
+    float3 normal;
+    float3 tangent;
+    float3 bitangent;
+    float2 uv;
 };

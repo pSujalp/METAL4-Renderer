@@ -22,6 +22,8 @@ void MTLEngine::init()
     createTriangle();
     model_3d = new Model("assets/Backpack_embedded.fbx",metalDevice, _mainDeletionQueue);
 
+    
+
 
     createRenderPipeline();
     createCommandQueue();     
@@ -140,6 +142,26 @@ void MTLEngine::init()
             };
 
         OffScreenVertexBuffer = metalDevice->newBuffer(&quadVertices,sizeof(quadVertices),MTL::ResourceStorageModeShared);
+
+        sphere = new Sphere(5,30,30);
+        std::vector<VertexData> vertexdata;
+
+        for (size_t i = 0; i < sphere->positions.size(); i++) {
+        glm::vec4 t = glm::vec4(sphere->positions[i] , 1.0f);
+        glm::vec2 t1 = sphere->uv[i];
+        VertexData vd;
+
+        vd.position = *reinterpret_cast<float4*>(&t);
+        vd.textureCoordinate = *reinterpret_cast<float2*>(&t1);
+        vertexdata.emplace_back(vd);
+    }
+
+    SphereVertexBuffer = metalDevice->newBuffer(vertexdata.data(), vertexdata.size() * sizeof(VertexData), MTL::ResourceStorageModeShared);
+    SphereIndexedBuffer = metalDevice->newBuffer(sphere->indices.data(), 
+                                                       sphere->indices.size()* sizeof(uint32_t),
+                                                       MTL::ResourceStorageModeShared);
+
+
     }
 
     void MTLEngine::createSkybox()
@@ -190,7 +212,7 @@ void MTLEngine::init()
             std::cerr << "newArgumentTable() returned null.\n";
             exit(EXIT_FAILURE);
         }
-        arg_table->setAddress(triangleVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
+        arg_table->setAddress(SphereVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::VERTEX_DATA));
         arg_table->setAddress(transformationBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::Transformation_DATA));
         arg_table->setAddress(OffScreenVertexBuffer->gpuAddress(), (NS::UInteger)(BUFFER_INDEX::AAPL_Vertex_DATA));
         MTL::ResourceID r_ID = grassTexture->texture->gpuResourceID();
@@ -201,7 +223,8 @@ void MTLEngine::init()
         auto *residencyDesc = MTL::ResidencySetDescriptor::alloc()->init();
         residency_set = metalDevice->newResidencySet(residencyDesc, nullptr);
         residencyDesc->release();
-        residency_set->addAllocation(triangleVertexBuffer);
+        residency_set->addAllocation(SphereVertexBuffer);
+        residency_set->addAllocation(SphereIndexedBuffer);
         residency_set->addAllocation(transformationBuffer);
         residency_set->addAllocation(grassTexture->texture);
         residency_set->addAllocation(_renderTexture);
@@ -429,13 +452,19 @@ void MTLEngine::init()
         encoder->setDepthStencilState(depthStencilState);
         encoder->setArgumentTable(arg_table, MTL::RenderStageVertex);
         encoder->setArgumentTable(arg_table, MTL::RenderStageFragment);
-        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, (NS::UInteger)0, (NS::UInteger)36);
+
+
+
+        encoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, sphere->indexCount, MTL::IndexTypeUInt32,SphereIndexedBuffer->gpuAddress(), SphereIndexedBuffer->length());
         skybox.Draw(encoder);
 
-        MESHMVP Meshmvp;
-        Meshmvp.MVP = mvp1.MVP;
+        // MESHMVP Meshmvp;
+        // Meshmvp.MVP = mvp1.MVP;
 
-        model_3d->Draw(encoder,Meshmvp);
+        // model_3d->Draw(encoder,Meshmvp);
+
+
+        
 
         encoder->endEncoding();
         OffScreenRenderPassDescriptor->release();
