@@ -143,7 +143,7 @@ void MTLEngine::init()
 
         OffScreenVertexBuffer = metalDevice->newBuffer(&quadVertices,sizeof(quadVertices),MTL::ResourceStorageModeShared);
 
-        sphere = new Sphere(5,30,30);
+        sphere = new Sphere(1,30,30);
         std::vector<VertexData> vertexdata;
 
         for (size_t i = 0; i < sphere->positions.size(); i++) {
@@ -458,10 +458,10 @@ void MTLEngine::init()
         encoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, sphere->indexCount, MTL::IndexTypeUInt32,SphereIndexedBuffer->gpuAddress(), SphereIndexedBuffer->length());
         skybox.Draw(encoder);
 
-        // MESHMVP Meshmvp;
-        // Meshmvp.MVP = mvp1.MVP;
+        MESHMVP Meshmvp;
+        Meshmvp.MVP = mvp1.MVP;
 
-        // model_3d->Draw(encoder,Meshmvp);
+        model_3d->Draw(encoder,Meshmvp);
 
 
         

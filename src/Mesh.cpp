@@ -1,6 +1,6 @@
 #include "Mesh.h"
 
-Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
+Mesh::Mesh(std::vector<VertexData> &meshv, const std::string &material_name,
            const std::vector<uint32_t> &indices, MTL::Device *metalDevice, DeletionQueue &dq)
 {
 
@@ -8,12 +8,12 @@ Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
     this->material_name = material_name;
     this->indexCount = indices.size();
 
-    Mesh_Data = metalDevice->newBuffer(meshv.data(), sizeof(Mesh_Vertices) * meshv.size(), MTL::StorageModeShared);
-    material_Data = metalDevice->newBuffer(sizeof(PBRMaterial), MTL::StorageModeShared);
+    Mesh_Data = metalDevice->newBuffer(meshv.data(), sizeof(VertexData) * meshv.size(), MTL::StorageModeShared);
+    
     index_Data = metalDevice->newBuffer(indices.data(), sizeof(uint32_t) * indices.size(), MTL::StorageModeShared);
     MVP_Data = metalDevice->newBuffer(sizeof(MESHMVP), MTL::StorageModeShared);
 
-    if (!Mesh_Data || !material_Data || !index_Data || !MVP_Data)
+    if (!Mesh_Data  || !index_Data || !MVP_Data)
     {
         std::cerr << "newBuffer() returned null.\n";
         exit(EXIT_FAILURE);
@@ -45,7 +45,6 @@ Mesh::Mesh(std::vector<Mesh_Vertices> &meshv, const std::string &material_name,
         if (MeshDepthStencilState) MeshDepthStencilState->release();
         if (MeshPSO) MeshPSO->release();
         if (Mesh_Data) Mesh_Data->release();
-        if (material_Data) material_Data->release();
         if (index_Data) index_Data->release();
         if (MVP_Data) MVP_Data->release(); });
 }
@@ -79,21 +78,20 @@ void Mesh::UpdateResidency(MTL::ResidencySet *residency_set)
 {
     residency_set->addAllocation(this->Mesh_Data);
     residency_set->addAllocation(this->MVP_Data);
-    residency_set->addAllocation(this->material_Data);
     residency_set->addAllocation(this->index_Data);
 }
 
-void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, PBRMaterial &pbr_mat, MESHMVP &mvp)
+void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, MESHMVP &mvp)
 {
-    memcpy(material_Data->contents(), &pbr_mat, sizeof(PBRMaterial));
+    
     memcpy(MVP_Data->contents(), &mvp, sizeof(MESHMVP));
 
     encoder->setRenderPipelineState(MeshPSO);
     encoder->setDepthStencilState(MeshDepthStencilState);
     encoder->setArgumentTable(Mesharg_table, MTL::RenderStageVertex);
-    // encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
+    encoder->setArgumentTable(Mesharg_table, MTL::RenderStageFragment);
 
     encoder->drawIndexedPrimitives(MTL::PrimitiveType::PrimitiveTypeTriangle, indexCount,
                                MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
-                               indexCount * sizeof(uint32_t));
+                               index_Data->length());
 }
