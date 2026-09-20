@@ -415,6 +415,8 @@ void MTLEngine::init()
         depthAttachment->setLoadAction(MTL::LoadActionClear);
         depthAttachment->setStoreAction(MTL::StoreActionDontCare);
         depthAttachment->setClearDepth(1.0);
+
+        
         cd->setTexture(surface->texture());
         cd->setLoadAction(MTL::LoadActionClear);
         cd->setClearColor(MTL::ClearColor(55.0f / 255.0f, 55.0f / 255.0f, 55.0f / 255.0f, 1.0));
