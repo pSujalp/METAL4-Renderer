@@ -1,5 +1,7 @@
 #include "Model.h"
+#include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -10,13 +12,15 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
     if (!scene)
     {
         fprintf(stderr, "ufbx load error: %s\n", error.description.data);
-        assert(scene);
+        return;
     }
 
-    for (ufbx_mesh *mesh : scene->meshes)
+    for (ufbx_node *node : scene->nodes)
     {
-        // Reading mesh->vertex_uv[...] when the mesh has no UVs dereferences a null
-        // index array and segfaults, so check first.
+        ufbx_mesh *mesh = node->mesh;
+        if (!mesh)
+            continue;
+
         const bool hasUV = mesh->vertex_uv.exists;
 
         for (ufbx_mesh_part &part : mesh->material_parts)
@@ -30,7 +34,8 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
 
             ufbx_material *material = NULL;
 
-            if (part.index < mesh->materials.count) {
+            if (part.index < mesh->materials.count)
+            {
                 material = mesh->materials.data[part.index];
             }
 
@@ -46,12 +51,11 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
                 {
                     uint32_t index = tri_indices[i];
 
-                    // Zero everything (including padding): ufbx_generate_indices compares raw bytes.
                     VertexData v;
                     std::memset(&v, 0, sizeof(v));
 
-                    const ufbx_vec3 p = mesh->vertex_position[index];
-                    v.position = float4{(float)p.x, (float)p.y, (float)p.z, 1.0f};
+                    ufbx_vec3 p = ufbx_transform_position(&node->geometry_to_world, mesh->vertex_position[index]);
+                    v.position = {(float)p.x, (float)p.y, (float)p.z, 1.0f};
 
                     if (hasUV)
                     {
@@ -61,6 +65,7 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
                     vertices.push_back(v);
                 }
             }
+
             ufbx_vertex_stream streams[1] = {
                 {vertices.data(), vertices.size(), sizeof(VertexData)},
             };
@@ -71,13 +76,11 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             size_t num_vertices = ufbx_generate_indices(streams, 1, indices.data(), indices.size(), nullptr, &genErr);
             if (num_vertices == 0)
             {
-                // Building a Mesh from zero vertices gives a null MTL::Buffer later on.
                 std::cerr << "ufbx_generate_indices failed: " << genErr.description.data << "\n";
                 continue;
             }
             vertices.resize(num_vertices);
 
-            // (The extra `new Mesh()` before this leaked an object; removed.)
             Mesh *meshy = new Mesh(vertices, mat_name, indices, metalDevice, dq);
             meshes.emplace_back(meshy);
         }

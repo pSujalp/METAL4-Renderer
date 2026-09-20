@@ -9,6 +9,10 @@ enum class MESH_BUFFER_INDEX : uint8_t {
     MVP_DATA = 1,
 };
 
+enum class TEXTURE_INDEX : uint8_t {
+    ALBEDO
+};
+
 
 
 struct MESHMVP{
