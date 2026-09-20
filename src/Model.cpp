@@ -1,20 +1,29 @@
 #include "Model.h"
 #include <cmath>
 #include <cstring>
-#include <filesystem>
-#include <unordered_map>
+#include <iostream>
 
 Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueue &dq)
 {
-
-    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), NULL, NULL);
-    assert(scene);
+    ufbx_error error;
+    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), NULL, &error);
+    if (!scene)
+    {
+        fprintf(stderr, "ufbx load error: %s\n", error.description.data);
+        assert(scene);
+    }
 
     for (ufbx_mesh *mesh : scene->meshes)
     {
+        // Reading mesh->vertex_uv[...] when the mesh has no UVs dereferences a null
+        // index array and segfaults, so check first.
+        const bool hasUV = mesh->vertex_uv.exists;
 
         for (ufbx_mesh_part &part : mesh->material_parts)
         {
+            if (part.num_triangles == 0)
+                continue;
+
             std::vector<VertexData> vertices;
             std::vector<uint32_t> tri_indices;
             tri_indices.resize(mesh->max_face_triangles * 3);
@@ -31,18 +40,24 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             {
                 ufbx_face face = mesh->faces[face_index];
 
-                
                 uint32_t num_tris = ufbx_triangulate_face(
                     tri_indices.data(), tri_indices.size(), mesh, face);
                 for (size_t i = 0; i < num_tris * 3; i++)
                 {
                     uint32_t index = tri_indices[i];
 
+                    // Zero everything (including padding): ufbx_generate_indices compares raw bytes.
                     VertexData v;
-                    v.position = float4{(float)mesh->vertex_position[index].x, (float)mesh->vertex_position[index].y,
-                                        (float)mesh->vertex_position[index].z, 1.0f};
+                    std::memset(&v, 0, sizeof(v));
 
-                    v.textureCoordinate = {(float)mesh->vertex_uv[index].x, (float)mesh->vertex_uv[index].y};
+                    const ufbx_vec3 p = mesh->vertex_position[index];
+                    v.position = float4{(float)p.x, (float)p.y, (float)p.z, 1.0f};
+
+                    if (hasUV)
+                    {
+                        const ufbx_vec2 uv = mesh->vertex_uv[index];
+                        v.textureCoordinate = {(float)uv.x, (float)uv.y};
+                    }
                     vertices.push_back(v);
                 }
             }
@@ -52,16 +67,23 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             std::vector<uint32_t> indices;
             indices.resize(part.num_triangles * 3);
 
-            size_t num_vertices = ufbx_generate_indices(streams, 1, indices.data(), indices.size(), nullptr, nullptr);
+            ufbx_error genErr;
+            size_t num_vertices = ufbx_generate_indices(streams, 1, indices.data(), indices.size(), nullptr, &genErr);
+            if (num_vertices == 0)
+            {
+                // Building a Mesh from zero vertices gives a null MTL::Buffer later on.
+                std::cerr << "ufbx_generate_indices failed: " << genErr.description.data << "\n";
+                continue;
+            }
             vertices.resize(num_vertices);
 
-            Mesh * meshy = new Mesh();
-            meshy = new Mesh(vertices,mat_name,indices,metalDevice,dq);
+            // (The extra `new Mesh()` before this leaked an object; removed.)
+            Mesh *meshy = new Mesh(vertices, mat_name, indices, metalDevice, dq);
             meshes.emplace_back(meshy);
-
-            
         }
     }
+
+    ufbx_free_scene(scene);
 }
 
 void Model::UpdateShaders(const MTL::Library *lib, DeletionQueue &dq, MTL4::Compiler *metal4Complier, const MTL::PixelFormat &pf)
