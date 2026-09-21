@@ -4,11 +4,37 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <string>
+
+static Texture *MakeTexture(const ufbx_texture *t, MTL::Device *device, bool srgb)
+{
+    if (!t)
+        return nullptr;
+
+    if (!t->content.data || t->content.size == 0)
+    {
+        std::cerr << "Texture '" << t->element.name.data << "' has no pixel data (file: "
+                  << t->filename.data << ")\n";
+        return nullptr;
+    }
+
+    Texture *tex = new Texture((unsigned char*)t->content.data, t->content.size, device);
+    if (!tex->texture)
+    {
+        delete tex;
+        return nullptr;
+    }
+    return tex;
+}
 
 Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueue &dq)
 {
+    ufbx_load_opts opts = {};
+    opts.load_external_files = true;
+    opts.ignore_missing_external_files = true;
+
     ufbx_error error;
-    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), NULL, &error);
+    ufbx_scene *scene = ufbx_load_file(filePath.c_str(), &opts, &error);
     if (!scene)
     {
         fprintf(stderr, "ufbx load error: %s\n", error.description.data);
@@ -29,26 +55,26 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
                 continue;
 
             std::vector<VertexData> vertices;
+            vertices.reserve(part.num_triangles * 3);
             std::vector<uint32_t> tri_indices;
             tri_indices.resize(mesh->max_face_triangles * 3);
 
-            ufbx_material *material = NULL;
-
+            ufbx_material *material = nullptr;
             std::string mat_name;
-
 
             if (part.index < mesh->materials.count)
             {
                 material = mesh->materials.data[part.index];
                 mat_name = material ? material->name.data : "";
-                if(pbr_material_mapping.find(mat_name) == pbr_material_mapping.end()){
-                    ExtractTextures(material,metalDevice);
-                }
-                
             }
 
-            
-
+            if (pbr_material_mapping.find(mat_name) == pbr_material_mapping.end())
+            {
+                if (material)
+                    ExtractTextures(material, metalDevice);
+                else
+                    pbr_material_mapping[mat_name] = new PBR_Mat();
+            }
 
             for (uint32_t face_index : part.face_indices)
             {
@@ -92,11 +118,7 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
 
             Mesh *meshy = new Mesh(vertices, mat_name, indices, metalDevice, dq);
 
-            meshy->base_color_texture = pbr_material_mapping[mat_name]->base_color_texture;
-            meshy->normalmap_texture = pbr_material_mapping[mat_name]->normalmap_texture;
-            meshy->specular_texture = pbr_material_mapping[mat_name]->specular_texture;
-            meshy->metallic_texture = pbr_material_mapping[mat_name]->metallic_texture;
-            meshy->roughness_texture = pbr_material_mapping[mat_name]->roughness_texture;
+            meshy->SetMaterial(pbr_material_mapping[mat_name]);
             meshes.emplace_back(meshy);
         }
     }
@@ -123,35 +145,39 @@ void Model::Draw(MTL4::RenderCommandEncoder *encoder, MESHMVP &mvp)
 {
     for (auto const &i : meshes)
     {
-        i->Draw(encoder, mvp, pbr_material_mapping[i->material_name]);
+
+        auto it = pbr_material_mapping.find(i->material_name);
+        i->Draw(encoder, mvp, it != pbr_material_mapping.end() ? it->second : nullptr);
     }
 }
 
-void Model::ExtractTextures(ufbx_material *mat, MTL::Device * metalDevice)
+void Model::ExtractTextures(ufbx_material *mat, MTL::Device *metalDevice)
 {
-    const ufbx_material_texture_list textures = mat->textures;
-    for (const auto &tex : textures)
+
+    PBR_Mat *pbr_mat = new PBR_Mat();
+
+    auto pick = [&](const char *slotName, const ufbx_material_map &fallback) -> const ufbx_texture *
     {
-        PBR_Mat * pbr_mat = new PBR_Mat();
-        if (tex.texture->content.data && tex.texture->content.size > 0)
+        for (const auto &tex : mat->textures)
         {
-            std::cout << tex.texture->element.name.data << std::endl;
-
-            if(tex.texture->element.name.data == "base_color_texture")
-            pbr_mat->base_color_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
-
-            if(tex.texture->element.name.data == "normalmap_texture")
-            pbr_mat->normalmap_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
-
-            if(tex.texture->element.name.data == "metallic_texture")
-            pbr_mat->metallic_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
-
-            if(tex.texture->element.name.data == "roughness_texture")
-            pbr_mat->roughness_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
-
-            if(tex.texture->element.name.data == "specular_texture")
-            pbr_mat->specular_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            if (tex.texture && std::string(tex.texture->element.name.data) == slotName)
+                return tex.texture;
         }
-        pbr_material_mapping[mat->name.data] = std::move(pbr_mat);
-    }
+        return fallback.texture;
+    };
+
+    pbr_mat->base_color_texture = MakeTexture(pick("base_color_texture", mat->pbr.base_color), metalDevice, true);
+    pbr_mat->normalmap_texture = MakeTexture(pick("normalmap_texture", mat->pbr.normal_map), metalDevice, false);
+    pbr_mat->metallic_texture = MakeTexture(pick("metallic_texture", mat->pbr.metalness), metalDevice, false);
+    pbr_mat->roughness_texture = MakeTexture(pick("roughness_texture", mat->pbr.roughness), metalDevice, false);
+    pbr_mat->specular_texture = MakeTexture(pick("specular_texture", mat->pbr.specular_color), metalDevice, false);
+
+    std::cout << "Material '" << mat->name.data << "': base="
+              << (pbr_mat->base_color_texture != nullptr) << " normal="
+              << (pbr_mat->normalmap_texture != nullptr) << " metallic="
+              << (pbr_mat->metallic_texture != nullptr) << " roughness="
+              << (pbr_mat->roughness_texture != nullptr) << " specular="
+              << (pbr_mat->specular_texture != nullptr) << "\n";
+
+    pbr_material_mapping[mat->name.data] = pbr_mat;
 }

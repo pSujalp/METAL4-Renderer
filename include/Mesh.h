@@ -41,7 +41,7 @@ public:
     void UpdateShaders(const MTL::Library *lib, DeletionQueue &dq,
                        MTL4::Compiler *metal4Complier, const MTL::PixelFormat &pf);
 
-    
+    void SetMaterial(const PBR_Mat *pbr_mat);
 
     void UpdateResidency(MTL::ResidencySet *residency_set);
 

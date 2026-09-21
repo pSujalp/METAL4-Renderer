@@ -143,3 +143,26 @@ void Mesh::Draw(MTL4::RenderCommandEncoder *encoder, const MESHMVP &mvp, const P
                                    MTL::IndexType::IndexTypeUInt32, index_Data->gpuAddress(),
                                    index_Data->length());
 }
+
+void Mesh::SetMaterial(const PBR_Mat *pbr_mat)
+{
+    if (!pbr_mat)
+        return;
+
+    base_color_texture = pbr_mat->base_color_texture;
+    normalmap_texture  = pbr_mat->normalmap_texture;
+    specular_texture   = pbr_mat->specular_texture;
+    metallic_texture   = pbr_mat->metallic_texture;
+    roughness_texture  = pbr_mat->roughness_texture;
+
+    auto bind = [this](Texture *t, MESH_TEXTURE_INDEX idx)
+    {
+        if (t && t->texture)
+            Mesharg_table->setTexture(t->texture->gpuResourceID(), (NS::UInteger)idx);
+    };
+    bind(base_color_texture, MESH_TEXTURE_INDEX::base_color_texture);
+    bind(normalmap_texture,  MESH_TEXTURE_INDEX::normalmap_texture);
+    bind(specular_texture,   MESH_TEXTURE_INDEX::specular_texture);
+    bind(metallic_texture,   MESH_TEXTURE_INDEX::metallic_texture);
+    bind(roughness_texture,  MESH_TEXTURE_INDEX::roughness_texture);
+}
