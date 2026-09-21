@@ -138,19 +138,19 @@ void Model::ExtractTextures(ufbx_material *mat, MTL::Device * metalDevice)
             std::cout << tex.texture->element.name.data << std::endl;
 
             if(tex.texture->element.name.data == "base_color_texture")
-            pbr_mat->base_color_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            pbr_mat->base_color_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
 
             if(tex.texture->element.name.data == "normalmap_texture")
-            pbr_mat->normalmap_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            pbr_mat->normalmap_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
 
             if(tex.texture->element.name.data == "metallic_texture")
-            pbr_mat->metallic_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            pbr_mat->metallic_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
 
             if(tex.texture->element.name.data == "roughness_texture")
-            pbr_mat->roughness_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            pbr_mat->roughness_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
 
             if(tex.texture->element.name.data == "specular_texture")
-            pbr_mat->specular_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+            pbr_mat->specular_texture = new Texture((stbi_uc*)tex.texture->content.data,tex.texture->content.size,metalDevice);
         }
         pbr_material_mapping[mat->name.data] = std::move(pbr_mat);
     }
