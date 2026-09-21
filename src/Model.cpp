@@ -34,12 +34,21 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
 
             ufbx_material *material = NULL;
 
+            std::string mat_name;
+
+
             if (part.index < mesh->materials.count)
             {
                 material = mesh->materials.data[part.index];
+                mat_name = material ? material->name.data : "";
+                if(pbr_material_mapping.find(mat_name) == pbr_material_mapping.end()){
+                    ExtractTextures(material,metalDevice);
+                }
+                
             }
 
-            std::string mat_name = material ? material->name.data : "";
+            
+
 
             for (uint32_t face_index : part.face_indices)
             {
@@ -82,10 +91,15 @@ Model::Model(const std::string &filePath, MTL::Device *metalDevice, DeletionQueu
             vertices.resize(num_vertices);
 
             Mesh *meshy = new Mesh(vertices, mat_name, indices, metalDevice, dq);
+
+            meshy->base_color_texture = pbr_material_mapping[mat_name]->base_color_texture;
+            meshy->normalmap_texture = pbr_material_mapping[mat_name]->normalmap_texture;
+            meshy->specular_texture = pbr_material_mapping[mat_name]->specular_texture;
+            meshy->metallic_texture = pbr_material_mapping[mat_name]->metallic_texture;
+            meshy->roughness_texture = pbr_material_mapping[mat_name]->roughness_texture;
             meshes.emplace_back(meshy);
         }
     }
-
     ufbx_free_scene(scene);
 }
 
@@ -109,6 +123,35 @@ void Model::Draw(MTL4::RenderCommandEncoder *encoder, MESHMVP &mvp)
 {
     for (auto const &i : meshes)
     {
-        i->Draw(encoder, mvp);
+        i->Draw(encoder, mvp, pbr_material_mapping[i->material_name]);
+    }
+}
+
+void Model::ExtractTextures(ufbx_material *mat, MTL::Device * metalDevice)
+{
+    const ufbx_material_texture_list textures = mat->textures;
+    for (const auto &tex : textures)
+    {
+        PBR_Mat * pbr_mat = new PBR_Mat();
+        if (tex.texture->content.data && tex.texture->content.size > 0)
+        {
+            std::cout << tex.texture->element.name.data << std::endl;
+
+            if(tex.texture->element.name.data == "base_color_texture")
+            pbr_mat->base_color_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+
+            if(tex.texture->element.name.data == "normalmap_texture")
+            pbr_mat->normalmap_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+
+            if(tex.texture->element.name.data == "metallic_texture")
+            pbr_mat->metallic_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+
+            if(tex.texture->element.name.data == "roughness_texture")
+            pbr_mat->roughness_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+
+            if(tex.texture->element.name.data == "specular_texture")
+            pbr_mat->specular_texture = new Texture((unsigned char*)tex.texture->content.data,tex.texture->content.size,metalDevice);
+        }
+        pbr_material_mapping[mat->name.data] = std::move(pbr_mat);
     }
 }
